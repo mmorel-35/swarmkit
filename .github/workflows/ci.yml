@@ -65,7 +65,7 @@ jobs:
       -
         if: ${{ startsWith(matrix.target, 'coverage') }}
         name: Send to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         with:
           env_vars: RUNNER_OS
           flags: ${{ matrix.target }}
