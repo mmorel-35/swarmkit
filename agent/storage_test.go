@@ -10,6 +10,7 @@ import (
 	"github.com/moby/swarmkit/v2/api"
 	"github.com/moby/swarmkit/v2/identity"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -178,10 +179,10 @@ func storageTestEnv(t *testing.T) (*bolt.DB, func()) {
 	var cleanup []func()
 	dir := t.TempDir()
 	dbpath := filepath.Join(dir, "tasks.db")
-	assert.NoError(t, os.MkdirAll(dir, 0o777))
+	require.NoError(t, os.MkdirAll(dir, 0o777))
 
 	db, err := bolt.Open(dbpath, 0666, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	cleanup = append(cleanup, func() { db.Close() })
 
 	assert.NoError(t, InitDB(db))
