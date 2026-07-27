@@ -52,7 +52,7 @@ func TestReplicatedOrchestrator(t *testing.T) {
 		assert.NoError(t, store.CreateService(tx, s1))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Start the orchestrator.
 	go func() {
@@ -60,12 +60,12 @@ func TestReplicatedOrchestrator(t *testing.T) {
 	}()
 
 	observedTask1 := testutils.WatchTaskCreate(t, watch)
-	assert.Equal(t, observedTask1.Status.State, api.TaskStateNew)
-	assert.Equal(t, observedTask1.ServiceAnnotations.Name, "name1")
+	assert.Equal(t, api.TaskStateNew, observedTask1.Status.State)
+	assert.Equal(t, "name1", observedTask1.ServiceAnnotations.Name)
 
 	observedTask2 := testutils.WatchTaskCreate(t, watch)
-	assert.Equal(t, observedTask2.Status.State, api.TaskStateNew)
-	assert.Equal(t, observedTask2.ServiceAnnotations.Name, "name1")
+	assert.Equal(t, api.TaskStateNew, observedTask2.Status.State)
+	assert.Equal(t, "name1", observedTask2.ServiceAnnotations.Name)
 
 	// Create a second service.
 	err = s.Update(func(tx store.Tx) error {
@@ -90,11 +90,11 @@ func TestReplicatedOrchestrator(t *testing.T) {
 		assert.NoError(t, store.CreateService(tx, s2))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	observedTask3 := testutils.WatchTaskCreate(t, watch)
-	assert.Equal(t, observedTask3.Status.State, api.TaskStateNew)
-	assert.Equal(t, observedTask3.ServiceAnnotations.Name, "name2")
+	assert.Equal(t, api.TaskStateNew, observedTask3.Status.State)
+	assert.Equal(t, "name2", observedTask3.ServiceAnnotations.Name)
 
 	// Update a service to scale it out to 3 instances
 	err = s.Update(func(tx store.Tx) error {
@@ -119,15 +119,15 @@ func TestReplicatedOrchestrator(t *testing.T) {
 		assert.NoError(t, store.UpdateService(tx, s2))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	observedTask4 := testutils.WatchTaskCreate(t, watch)
-	assert.Equal(t, observedTask4.Status.State, api.TaskStateNew)
-	assert.Equal(t, observedTask4.ServiceAnnotations.Name, "name2")
+	assert.Equal(t, api.TaskStateNew, observedTask4.Status.State)
+	assert.Equal(t, "name2", observedTask4.ServiceAnnotations.Name)
 
 	observedTask5 := testutils.WatchTaskCreate(t, watch)
-	assert.Equal(t, observedTask5.Status.State, api.TaskStateNew)
-	assert.Equal(t, observedTask5.ServiceAnnotations.Name, "name2")
+	assert.Equal(t, api.TaskStateNew, observedTask5.Status.State)
+	assert.Equal(t, "name2", observedTask5.ServiceAnnotations.Name)
 
 	// Now scale it back down to 1 instance
 	err = s.Update(func(tx store.Tx) error {
@@ -152,15 +152,15 @@ func TestReplicatedOrchestrator(t *testing.T) {
 		assert.NoError(t, store.UpdateService(tx, s2))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	observedUpdateRemove1 := testutils.WatchTaskUpdate(t, watch)
-	assert.Equal(t, observedUpdateRemove1.DesiredState, api.TaskStateRemove)
-	assert.Equal(t, observedUpdateRemove1.ServiceAnnotations.Name, "name2")
+	assert.Equal(t, api.TaskStateRemove, observedUpdateRemove1.DesiredState)
+	assert.Equal(t, "name2", observedUpdateRemove1.ServiceAnnotations.Name)
 
 	observedUpdateRemove2 := testutils.WatchTaskUpdate(t, watch)
-	assert.Equal(t, observedUpdateRemove2.DesiredState, api.TaskStateRemove)
-	assert.Equal(t, observedUpdateRemove2.ServiceAnnotations.Name, "name2")
+	assert.Equal(t, api.TaskStateRemove, observedUpdateRemove2.DesiredState)
+	assert.Equal(t, "name2", observedUpdateRemove2.ServiceAnnotations.Name)
 
 	// There should be one remaining task attached to service id2/name2.
 	var liveTasks []*api.Task
@@ -173,7 +173,7 @@ func TestReplicatedOrchestrator(t *testing.T) {
 			}
 		}
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Len(t, liveTasks, 1)
 
 	// Delete the remaining task directly. It should be recreated by the
@@ -182,22 +182,22 @@ func TestReplicatedOrchestrator(t *testing.T) {
 		assert.NoError(t, store.DeleteTask(tx, liveTasks[0].ID))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	observedTask6 := testutils.WatchTaskCreate(t, watch)
-	assert.Equal(t, observedTask6.Status.State, api.TaskStateNew)
-	assert.Equal(t, observedTask6.ServiceAnnotations.Name, "name2")
+	assert.Equal(t, api.TaskStateNew, observedTask6.Status.State)
+	assert.Equal(t, "name2", observedTask6.ServiceAnnotations.Name)
 
 	// Delete the service. Its remaining task should go away.
 	err = s.Update(func(tx store.Tx) error {
 		assert.NoError(t, store.DeleteService(tx, "id2"))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	deletedTask := testutils.WatchTaskDelete(t, watch)
-	assert.Equal(t, deletedTask.Status.State, api.TaskStateNew)
-	assert.Equal(t, deletedTask.ServiceAnnotations.Name, "name2")
+	assert.Equal(t, api.TaskStateNew, deletedTask.Status.State)
+	assert.Equal(t, "name2", deletedTask.ServiceAnnotations.Name)
 }
 
 func TestReplicatedScaleDown(t *testing.T) {
@@ -268,7 +268,7 @@ func TestReplicatedScaleDown(t *testing.T) {
 			},
 		}
 		for _, node := range nodes {
-			assert.NoError(t, store.CreateNode(tx, node))
+			require.NoError(t, store.CreateNode(tx, node))
 		}
 
 		// task1 is assigned to node1
@@ -374,7 +374,7 @@ func TestReplicatedScaleDown(t *testing.T) {
 
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Start the orchestrator.
 	go func() {
@@ -399,7 +399,7 @@ func TestReplicatedScaleDown(t *testing.T) {
 		assert.NoError(t, store.UpdateService(tx, s1))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Tasks should be shut down in a way that balances the remaining tasks.
 	// node2 should be preferred over node3 because node2's tasks have
@@ -437,7 +437,7 @@ func TestReplicatedScaleDown(t *testing.T) {
 		assert.NoError(t, store.UpdateService(tx, s1))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Tasks should be shut down in a way that balances the remaining tasks.
 	// node2 and node3 should be preferred over node1 because node1's task
@@ -514,7 +514,7 @@ func TestInitializationRejectedTasks(t *testing.T) {
 			},
 		}
 		for _, node := range nodes {
-			assert.NoError(t, store.CreateNode(tx, node))
+			require.NoError(t, store.CreateNode(tx, node))
 		}
 
 		// 1 rejected task is in store before orchestrator starts
@@ -544,7 +544,7 @@ func TestInitializationRejectedTasks(t *testing.T) {
 
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// watch orchestration events
 	watch, cancel := state.Watch(s.WatchQueue(), api.EventCreateTask{}, api.EventUpdateTask{}, api.EventDeleteTask{})
@@ -559,17 +559,17 @@ func TestInitializationRejectedTasks(t *testing.T) {
 
 	// initTask triggers an update event
 	observedTask1 := testutils.WatchTaskUpdate(t, watch)
-	assert.Equal(t, observedTask1.ID, "task1")
-	assert.Equal(t, observedTask1.Status.State, api.TaskStateRejected)
-	assert.Equal(t, observedTask1.DesiredState, api.TaskStateShutdown)
+	assert.Equal(t, "task1", observedTask1.ID)
+	assert.Equal(t, api.TaskStateRejected, observedTask1.Status.State)
+	assert.Equal(t, api.TaskStateShutdown, observedTask1.DesiredState)
 
 	// a new task is created
 	observedTask2 := testutils.WatchTaskCreate(t, watch)
-	assert.Equal(t, observedTask2.ServiceID, "serviceid1")
+	assert.Equal(t, "serviceid1", observedTask2.ServiceID)
 	// it has not been scheduled
-	assert.Equal(t, observedTask2.NodeID, "")
-	assert.Equal(t, observedTask2.Status.State, api.TaskStateNew)
-	assert.Equal(t, observedTask2.DesiredState, api.TaskStateReady)
+	assert.Empty(t, observedTask2.NodeID)
+	assert.Equal(t, api.TaskStateNew, observedTask2.Status.State)
+	assert.Equal(t, api.TaskStateReady, observedTask2.DesiredState)
 
 	var deadCnt, liveCnt int
 	s.View(func(readTx store.ReadTx) {
@@ -577,16 +577,16 @@ func TestInitializationRejectedTasks(t *testing.T) {
 		tasks, err = store.FindTasks(readTx, store.ByServiceID("serviceid1"))
 		for _, task := range tasks {
 			if task.DesiredState == api.TaskStateShutdown {
-				assert.Equal(t, task.ID, "task1")
+				assert.Equal(t, "task1", task.ID)
 				deadCnt++
 			} else {
 				liveCnt++
 			}
 		}
 	})
-	assert.NoError(t, err)
-	assert.Equal(t, deadCnt, 1)
-	assert.Equal(t, liveCnt, 1)
+	require.NoError(t, err)
+	assert.Equal(t, 1, deadCnt)
+	assert.Equal(t, 1, liveCnt)
 }
 
 func TestInitializationFailedTasks(t *testing.T) {
@@ -632,7 +632,7 @@ func TestInitializationFailedTasks(t *testing.T) {
 			},
 		}
 		for _, node := range nodes {
-			assert.NoError(t, store.CreateNode(tx, node))
+			require.NoError(t, store.CreateNode(tx, node))
 		}
 
 		// 1 failed task is in store before orchestrator starts
@@ -680,7 +680,7 @@ func TestInitializationFailedTasks(t *testing.T) {
 
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// watch orchestration events
 	watch, cancel := state.Watch(s.WatchQueue(), api.EventCreateTask{}, api.EventUpdateTask{}, api.EventDeleteTask{})
@@ -695,15 +695,15 @@ func TestInitializationFailedTasks(t *testing.T) {
 
 	// initTask triggers an update
 	observedTask1 := testutils.WatchTaskUpdate(t, watch)
-	assert.Equal(t, observedTask1.ID, "task1")
-	assert.Equal(t, observedTask1.Status.State, api.TaskStateFailed)
-	assert.Equal(t, observedTask1.DesiredState, api.TaskStateShutdown)
+	assert.Equal(t, "task1", observedTask1.ID)
+	assert.Equal(t, api.TaskStateFailed, observedTask1.Status.State)
+	assert.Equal(t, api.TaskStateShutdown, observedTask1.DesiredState)
 
 	// a new task is created
 	observedTask2 := testutils.WatchTaskCreate(t, watch)
-	assert.Equal(t, observedTask2.ServiceID, "serviceid1")
-	assert.Equal(t, observedTask2.Status.State, api.TaskStateNew)
-	assert.Equal(t, observedTask2.DesiredState, api.TaskStateReady)
+	assert.Equal(t, "serviceid1", observedTask2.ServiceID)
+	assert.Equal(t, api.TaskStateNew, observedTask2.Status.State)
+	assert.Equal(t, api.TaskStateReady, observedTask2.DesiredState)
 
 	var deadCnt, liveCnt int
 	s.View(func(readTx store.ReadTx) {
@@ -711,16 +711,16 @@ func TestInitializationFailedTasks(t *testing.T) {
 		tasks, err = store.FindTasks(readTx, store.ByServiceID("serviceid1"))
 		for _, task := range tasks {
 			if task.DesiredState == api.TaskStateShutdown {
-				assert.Equal(t, task.ID, "task1")
+				assert.Equal(t, "task1", task.ID)
 				deadCnt++
 			} else {
 				liveCnt++
 			}
 		}
 	})
-	assert.NoError(t, err)
-	assert.Equal(t, deadCnt, 1)
-	assert.Equal(t, liveCnt, 2)
+	require.NoError(t, err)
+	assert.Equal(t, 1, deadCnt)
+	assert.Equal(t, 2, liveCnt)
 }
 
 func TestInitializationNodeDown(t *testing.T) {
@@ -766,7 +766,7 @@ func TestInitializationNodeDown(t *testing.T) {
 			},
 		}
 		for _, node := range nodes {
-			assert.NoError(t, store.CreateNode(tx, node))
+			require.NoError(t, store.CreateNode(tx, node))
 		}
 
 		// 1 failed task is in store before orchestrator starts
@@ -796,7 +796,7 @@ func TestInitializationNodeDown(t *testing.T) {
 
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// watch orchestration events
 	watch, cancel := state.Watch(s.WatchQueue(), api.EventCreateTask{}, api.EventUpdateTask{}, api.EventDeleteTask{})
@@ -811,15 +811,15 @@ func TestInitializationNodeDown(t *testing.T) {
 
 	// initTask triggers an update
 	observedTask1 := testutils.WatchTaskUpdate(t, watch)
-	assert.Equal(t, observedTask1.ID, "task1")
-	assert.Equal(t, observedTask1.Status.State, api.TaskStateRunning)
-	assert.Equal(t, observedTask1.DesiredState, api.TaskStateShutdown)
+	assert.Equal(t, "task1", observedTask1.ID)
+	assert.Equal(t, api.TaskStateRunning, observedTask1.Status.State)
+	assert.Equal(t, api.TaskStateShutdown, observedTask1.DesiredState)
 
 	// a new task is created
 	observedTask2 := testutils.WatchTaskCreate(t, watch)
-	assert.Equal(t, observedTask2.ServiceID, "serviceid1")
-	assert.Equal(t, observedTask2.Status.State, api.TaskStateNew)
-	assert.Equal(t, observedTask2.DesiredState, api.TaskStateReady)
+	assert.Equal(t, "serviceid1", observedTask2.ServiceID)
+	assert.Equal(t, api.TaskStateNew, observedTask2.Status.State)
+	assert.Equal(t, api.TaskStateReady, observedTask2.DesiredState)
 }
 
 func TestInitializationDelayStart(t *testing.T) {
@@ -853,7 +853,7 @@ func TestInitializationDelayStart(t *testing.T) {
 
 	before := time.Now()
 	err := s.Update(func(tx store.Tx) error {
-		assert.NoError(t, store.CreateService(tx, service1))
+		require.NoError(t, store.CreateService(tx, service1))
 
 		nodes := []*api.Node{
 			{
@@ -870,7 +870,7 @@ func TestInitializationDelayStart(t *testing.T) {
 			},
 		}
 		for _, node := range nodes {
-			assert.NoError(t, store.CreateNode(tx, node))
+			require.NoError(t, store.CreateNode(tx, node))
 		}
 
 		// 1 failed task is in store before orchestrator starts
@@ -905,7 +905,7 @@ func TestInitializationDelayStart(t *testing.T) {
 
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// watch orchestration events
 	watch, cancel := state.Watch(s.WatchQueue(), api.EventCreateTask{}, api.EventUpdateTask{}, api.EventDeleteTask{})
@@ -921,9 +921,9 @@ func TestInitializationDelayStart(t *testing.T) {
 	// initTask triggers an update
 	observedTask1 := testutils.WatchTaskUpdate(t, watch)
 	after := time.Now()
-	assert.Equal(t, observedTask1.ID, "task1")
-	assert.Equal(t, observedTask1.Status.State, api.TaskStateReady)
-	assert.Equal(t, observedTask1.DesiredState, api.TaskStateRunning)
+	assert.Equal(t, "task1", observedTask1.ID)
+	assert.Equal(t, api.TaskStateReady, observedTask1.Status.State)
+	assert.Equal(t, api.TaskStateRunning, observedTask1.DesiredState)
 
 	// At least 100 ms should have elapsed
 	if after.Sub(before) < 100*time.Millisecond {
