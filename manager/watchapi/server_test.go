@@ -60,7 +60,7 @@ func newTestServer(t *testing.T) *testServer {
 	ts.tempUnixSocket = temp.Name()
 
 	lis, err := net.Listen("unix", temp.Name())
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	ts.grpcServer = grpc.NewServer()
 	api.RegisterWatchServer(ts.grpcServer, ts.Server)
@@ -74,7 +74,7 @@ func newTestServer(t *testing.T) *testServer {
 		grpc.WithDialer(func(addr string, timeout time.Duration) (net.Conn, error) {
 			return net.DialTimeout("unix", addr, timeout)
 		}))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	ts.clientConn = conn
 
 	ts.Client = api.NewWatchClient(conn)
