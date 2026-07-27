@@ -40,7 +40,7 @@ func (suite *testSuite) TestIPAMNotNil() {
 	}
 
 	// Try adding some objects to store before allocator is started
-	suite.NoError(s.Update(func(tx store.Tx) error {
+	suite.Require().NoError(s.Update(func(tx store.Tx) error {
 		// populate ingress network
 		in := &api.Network{
 			ID: "ingress-nw-id",
