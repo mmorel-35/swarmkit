@@ -11,8 +11,7 @@ func TestEncryptDecrypt(t *testing.T) {
 	// not providing an encrypter will fail
 	msg := []byte("hello again swarmkit")
 	_, err := Encrypt(msg, nil)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "no encrypter")
+	require.ErrorContains(t, err, "no encrypter")
 
 	// noop encrypter can encrypt
 	encrypted, err := Encrypt(msg, NoopCrypter)
@@ -20,8 +19,7 @@ func TestEncryptDecrypt(t *testing.T) {
 
 	// not providing a decrypter will fail
 	_, err = Decrypt(encrypted, nil)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "no decrypter")
+	require.ErrorContains(t, err, "no decrypter")
 
 	// noop decrypter can decrypt
 	decrypted, err := Decrypt(encrypted, NoopCrypter)

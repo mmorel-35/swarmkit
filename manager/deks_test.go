@@ -128,8 +128,7 @@ func TestRaftDEKMarshalUnmarshal(t *testing.T) {
 			pemHeaderRaftPendingDEK: headers[pemHeaderRaftDEK],
 		}
 		_, err = RaftDEKData{FIPS: fips}.UnmarshalHeaders(headers, kek)
-		require.Error(t, err)
-		require.Contains(t, err.Error(), "pending DEK, but no current DEK")
+		require.ErrorContains(t, err, "pending DEK, but no current DEK")
 	}
 }
 

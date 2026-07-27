@@ -9,6 +9,7 @@ import (
 	"github.com/moby/swarmkit/v2/api"
 	"github.com/moby/swarmkit/v2/manager/state/store"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createClusterSpec(name string) *api.ClusterSpec {
@@ -53,7 +54,7 @@ func TestKeyManagerDefaultSubsystem(t *testing.T) {
 		clusters, err = store.FindClusters(readTx, store.ByName(k.config.ClusterName))
 	})
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, len(clusters[0].NetworkBootstrapKeys), len(k.config.Subsystems)*keyringSize)
 
 	key1 := clusters[0].NetworkBootstrapKeys[0].Key
@@ -95,8 +96,8 @@ func TestKeyManagerCustomSubsystem(t *testing.T) {
 		clusters, err = store.FindClusters(readTx, store.ByName(k.config.ClusterName))
 	})
 
-	assert.NoError(t, err)
-	assert.Equal(t, len(clusters[0].NetworkBootstrapKeys), keyringSize)
+	require.NoError(t, err)
+	assert.Len(t, clusters[0].NetworkBootstrapKeys, keyringSize)
 
 	key1 := clusters[0].NetworkBootstrapKeys[0].Key
 
@@ -104,7 +105,7 @@ func TestKeyManagerCustomSubsystem(t *testing.T) {
 
 	// verify that after a rotation oldest key has been removed from the keyring
 	// also verify that all keys are for the right subsystem
-	assert.Equal(t, len(k.keyRing.keys), keyringSize)
+	assert.Len(t, k.keyRing.keys, keyringSize)
 	for _, key := range k.keyRing.keys {
 		match := bytes.Equal(key.Key, key1)
 		assert.False(t, match)

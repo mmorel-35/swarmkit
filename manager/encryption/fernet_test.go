@@ -58,8 +58,7 @@ func TestFernetInvalidAlgorithm(t *testing.T) {
 	er.Algorithm = api.MaybeEncryptedRecord_NotEncrypted
 
 	_, err = crypter.Decrypt(*er)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "not a Fernet message")
+	require.ErrorContains(t, err, "not a Fernet message")
 }
 
 func TestFernetCannotDecryptWithoutRightKey(t *testing.T) {

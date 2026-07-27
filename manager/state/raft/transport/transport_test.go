@@ -95,7 +95,7 @@ func testSend(ctx context.Context, c *mockCluster, from uint64, to []uint64, msg
 			for _, id := range to {
 				for _, s := range snaps {
 					if s.id == id {
-						assert.Equal(t, s.status, raft.SnapshotFinish)
+						assert.Equal(t, raft.SnapshotFinish, s.status)
 						continue loop
 					}
 				}
@@ -145,7 +145,7 @@ func TestSplitSnapshotDataDoesNotMutateInput(t *testing.T) {
 	assert.Equal(t, data, assembled)
 
 	// The input message's Snapshot.Data must be untouched (regression guard).
-	assert.Equal(t, origLen, len(m.Snapshot.Data))
+	assert.Len(t, m.Snapshot.Data, origLen)
 	assert.Equal(t, origCap, cap(m.Snapshot.Data))
 	assert.Equal(t, data, m.Snapshot.Data)
 }
@@ -186,8 +186,7 @@ func TestSendRemoved(t *testing.T) {
 	require.NoError(t, c.Get(1).RemovePeer(2))
 
 	err := sendMessages(ctx, c, 1, []uint64{2, 3}, raftpb.MsgHup)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "to removed member")
+	require.ErrorContains(t, err, "to removed member")
 }
 
 func TestSendSnapshotFailure(t *testing.T) {
@@ -210,15 +209,15 @@ func TestSendSnapshotFailure(t *testing.T) {
 
 	select {
 	case snap := <-c.Get(1).processedSnapshots:
-		assert.Equal(t, snap.id, uint64(2))
-		assert.Equal(t, snap.status, raft.SnapshotFailure)
+		assert.Equal(t, uint64(2), snap.id)
+		assert.Equal(t, raft.SnapshotFailure, snap.status)
 	case <-msgCtx.Done():
 		t.Fatal(ctx.Err())
 	}
 
 	select {
 	case id := <-c.Get(1).reportedUnreachables:
-		assert.Equal(t, id, uint64(2))
+		assert.Equal(t, uint64(2), id)
 	case <-msgCtx.Done():
 		t.Fatal(ctx.Err())
 	}
@@ -251,8 +250,8 @@ func TestSendUnknown(t *testing.T) {
 
 	select {
 	case msg := <-c.Get(2).processedMessages:
-		assert.Equal(t, msg.To, uint64(2))
-		assert.Equal(t, msg.From, uint64(1))
+		assert.Equal(t, uint64(2), msg.To)
+		assert.Equal(t, uint64(1), msg.From)
 	case <-msgCtx.Done():
 		t.Fatal(msgCtx.Err())
 	}
@@ -310,7 +309,7 @@ func TestUpdatePeerAddrDelayed(t *testing.T) {
 	defer updateCancel()
 	select {
 	case update := <-c.Get(1).updatedNodes:
-		require.Equal(t, update.id, uint64(3))
+		require.Equal(t, uint64(3), update.id)
 		require.Equal(t, update.addr, nr.Addr())
 	case <-updateCtx.Done():
 		t.Fatal(updateCtx.Err())
@@ -343,11 +342,10 @@ func TestSendUnreachable(t *testing.T) {
 	defer msgCancel()
 
 	err := sendMessages(msgCtx, c, 1, []uint64{2}, raftpb.MsgSnap)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "peer is unreachable")
+	require.ErrorContains(t, err, "peer is unreachable")
 	select {
 	case id := <-c.Get(1).reportedUnreachables:
-		assert.Equal(t, id, uint64(2))
+		assert.Equal(t, uint64(2), id)
 	case <-msgCtx.Done():
 		t.Fatal(ctx.Err())
 	}

@@ -359,7 +359,7 @@ func runValidTestCases(t *testing.T, testcases []*rootCARotationTestCase, localR
 			log.G(casectx).Debugf("CACert:%s", result.RootRotation.CACert)
 			log.G(casectx).Debugf("CrossSigned:%s", result.RootRotation.CrossSignedCACert)
 			_, err = parsedCross.Verify(x509.VerifyOptions{Roots: localRootCA.Pool})
-			assert.NoError(t, err, valid.description)
+			require.NoError(t, err, valid.description)
 
 			// if we are expecting generated certs or root rotation, we can expect the expected root CA has a root rotation
 			result.RootRotation.CrossSignedCACert = valid.expectRootCA.RootRotation.CrossSignedCACert
