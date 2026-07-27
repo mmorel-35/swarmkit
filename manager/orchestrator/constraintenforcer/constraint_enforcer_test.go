@@ -205,7 +205,7 @@ func TestConstraintEnforcer(t *testing.T) {
 	err := s.Update(func(tx store.Tx) error {
 		// Prepoulate nodes
 		for _, n := range nodes {
-			assert.NoError(t, store.CreateNode(tx, n))
+			require.NoError(t, store.CreateNode(tx, n))
 		}
 
 		// Prepopulate tasks
@@ -214,7 +214,7 @@ func TestConstraintEnforcer(t *testing.T) {
 		}
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	watch, cancel := state.Watch(s.WatchQueue(), api.EventUpdateTask{})
 	defer cancel()
@@ -239,7 +239,7 @@ func TestConstraintEnforcer(t *testing.T) {
 		assert.NoError(t, store.UpdateNode(tx, node))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// since we've changed the node from a worker to a manager, this task
 	// should now shut down
@@ -257,7 +257,7 @@ func TestConstraintEnforcer(t *testing.T) {
 		assert.NoError(t, store.UpdateNode(tx, node))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	shutdown3 := testutils.WatchTaskUpdate(t, watch)
 	assert.Equal(t, "id4", shutdown3.ID)
