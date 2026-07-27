@@ -14,7 +14,6 @@ import (
 	"github.com/moby/swarmkit/v2/manager/state"
 	"github.com/moby/swarmkit/v2/manager/state/store"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -30,8 +29,10 @@ type testSuite struct {
 }
 
 func (suite *testSuite) newAllocator(store *store.MemoryStore) *Allocator {
+	suite.T().Helper()
+
 	na, err := suite.np.NewAllocator(nil)
-	suite.NoError(err)
+	suite.Require().NoError(err)
 	a := New(store, na)
 	suite.NotNil(a)
 	return a
@@ -84,7 +85,7 @@ func (suite *testSuite) TestAllocator() {
 	}
 
 	// Try adding some objects to store before allocator is started
-	suite.NoError(s.Update(func(tx store.Tx) error {
+	suite.Require().NoError(s.Update(func(tx store.Tx) error {
 		// populate ingress network
 		in := &api.Network{
 			ID: "ingress-nw-id",
@@ -305,7 +306,7 @@ func (suite *testSuite) TestAllocator() {
 	})
 
 	// Add new networks/tasks/services after allocator is started.
-	suite.NoError(s.Update(func(tx store.Tx) error {
+	suite.Require().NoError(s.Update(func(tx store.Tx) error {
 		n2 := &api.Network{
 			ID: "testID2",
 			Spec: api.NetworkSpec{
@@ -320,7 +321,7 @@ func (suite *testSuite) TestAllocator() {
 
 	watchNetwork(suite.T(), netWatch, false, isValidNetwork)
 
-	suite.NoError(s.Update(func(tx store.Tx) error {
+	suite.Require().NoError(s.Update(func(tx store.Tx) error {
 		s2 := &api.Service{
 			ID: "testServiceID2",
 			Spec: api.ServiceSpec{
@@ -341,7 +342,7 @@ func (suite *testSuite) TestAllocator() {
 
 	watchService(suite.T(), serviceWatch, false, nil)
 
-	suite.NoError(s.Update(func(tx store.Tx) error {
+	suite.Require().NoError(s.Update(func(tx store.Tx) error {
 		t2 := &api.Task{
 			ID: "testTaskID2",
 			Status: api.TaskStatus{
@@ -366,7 +367,7 @@ func (suite *testSuite) TestAllocator() {
 		},
 	}
 
-	suite.NoError(s.Update(func(tx store.Tx) error {
+	suite.Require().NoError(s.Update(func(tx store.Tx) error {
 		t3 := &api.Task{
 			ID: "testTaskID3",
 			Status: api.TaskStatus{
@@ -388,7 +389,7 @@ func (suite *testSuite) TestAllocator() {
 	// going through
 	time.Sleep(10 * time.Millisecond)
 
-	suite.NoError(s.Update(func(tx store.Tx) error {
+	suite.Require().NoError(s.Update(func(tx store.Tx) error {
 		suite.NoError(store.CreateNetwork(tx, n3))
 		return nil
 	}))
@@ -396,13 +397,13 @@ func (suite *testSuite) TestAllocator() {
 	watchNetwork(suite.T(), netWatch, false, isValidNetwork)
 	watchTask(suite.T(), s, taskWatch, false, isValidTask)
 
-	suite.NoError(s.Update(func(tx store.Tx) error {
+	suite.Require().NoError(s.Update(func(tx store.Tx) error {
 		suite.NoError(store.DeleteTask(tx, "testTaskID3"))
 		return nil
 	}))
 	watchTask(suite.T(), s, taskWatch, false, isValidTask)
 
-	suite.NoError(s.Update(func(tx store.Tx) error {
+	suite.Require().NoError(s.Update(func(tx store.Tx) error {
 		t5 := &api.Task{
 			ID: "testTaskID5",
 			Spec: api.TaskSpec{
@@ -423,13 +424,13 @@ func (suite *testSuite) TestAllocator() {
 	}))
 	watchTask(suite.T(), s, taskWatch, false, isValidTask)
 
-	suite.NoError(s.Update(func(tx store.Tx) error {
+	suite.Require().NoError(s.Update(func(tx store.Tx) error {
 		suite.NoError(store.DeleteNetwork(tx, "testID3"))
 		return nil
 	}))
 	watchNetwork(suite.T(), netWatch, false, isValidNetwork)
 
-	suite.NoError(s.Update(func(tx store.Tx) error {
+	suite.Require().NoError(s.Update(func(tx store.Tx) error {
 		suite.NoError(store.DeleteService(tx, "testServiceID2"))
 		return nil
 	}))
@@ -437,7 +438,7 @@ func (suite *testSuite) TestAllocator() {
 
 	// Try to create a task with no network attachments and test
 	// that it moves to ALLOCATED state.
-	suite.NoError(s.Update(func(tx store.Tx) error {
+	suite.Require().NoError(s.Update(func(tx store.Tx) error {
 		t4 := &api.Task{
 			ID: "testTaskID4",
 			Status: api.TaskStatus{
@@ -450,9 +451,9 @@ func (suite *testSuite) TestAllocator() {
 	}))
 	watchTask(suite.T(), s, taskWatch, false, isValidTask)
 
-	suite.NoError(s.Update(func(tx store.Tx) error {
+	suite.Require().NoError(s.Update(func(tx store.Tx) error {
 		n2 := store.GetNetwork(tx, "testID2")
-		require.NotEqual(suite.T(), nil, n2)
+		suite.Require().NotNil(n2)
 		suite.NoError(store.UpdateNetwork(tx, n2))
 		return nil
 	}))
@@ -460,7 +461,7 @@ func (suite *testSuite) TestAllocator() {
 	watchNetwork(suite.T(), netWatch, true, nil)
 
 	// Try updating service which is already allocated with no endpointSpec
-	suite.NoError(s.Update(func(tx store.Tx) error {
+	suite.Require().NoError(s.Update(func(tx store.Tx) error {
 		s := store.GetService(tx, "testServiceID1")
 		s.Spec.Endpoint = nil
 
@@ -470,9 +471,9 @@ func (suite *testSuite) TestAllocator() {
 	watchService(suite.T(), serviceWatch, false, nil)
 
 	// Try updating task which is already allocated
-	suite.NoError(s.Update(func(tx store.Tx) error {
+	suite.Require().NoError(s.Update(func(tx store.Tx) error {
 		t2 := store.GetTask(tx, "testTaskID2")
-		require.NotEqual(suite.T(), nil, t2)
+		suite.Require().NotNil(t2)
 		suite.NoError(store.UpdateTask(tx, t2))
 		return nil
 	}))
@@ -500,19 +501,19 @@ func (suite *testSuite) TestAllocator() {
 	n5 := n4.Copy()
 	n5.ID = "testID5"
 	n5.Spec.Annotations.Name = "test5"
-	suite.NoError(s.Update(func(tx store.Tx) error {
+	suite.Require().NoError(s.Update(func(tx store.Tx) error {
 		suite.NoError(store.CreateNetwork(tx, n4))
 		return nil
 	}))
 	watchNetwork(suite.T(), netWatch, false, isValidNetwork)
 
-	suite.NoError(s.Update(func(tx store.Tx) error {
+	suite.Require().NoError(s.Update(func(tx store.Tx) error {
 		suite.NoError(store.CreateNetwork(tx, n5))
 		return nil
 	}))
 	watchNetwork(suite.T(), netWatch, true, nil)
 
-	suite.NoError(s.Update(func(tx store.Tx) error {
+	suite.Require().NoError(s.Update(func(tx store.Tx) error {
 		t6 := &api.Task{
 			ID: "testTaskID6",
 			Status: api.TaskStatus{
@@ -531,7 +532,7 @@ func (suite *testSuite) TestAllocator() {
 	watchTask(suite.T(), s, taskWatch, true, nil)
 
 	// Now remove the conflicting network.
-	suite.NoError(s.Update(func(tx store.Tx) error {
+	suite.Require().NoError(s.Update(func(tx store.Tx) error {
 		suite.NoError(store.DeleteNetwork(tx, n4.ID))
 		return nil
 	}))
@@ -568,18 +569,18 @@ func (suite *testSuite) TestAllocator() {
 	s4 := s3.Copy()
 	s4.ID = "testServiceID4"
 	s4.Spec.Annotations.Name = "service4"
-	suite.NoError(s.Update(func(tx store.Tx) error {
+	suite.Require().NoError(s.Update(func(tx store.Tx) error {
 		suite.NoError(store.CreateService(tx, s3))
 		return nil
 	}))
 	watchService(suite.T(), serviceWatch, false, nil)
-	suite.NoError(s.Update(func(tx store.Tx) error {
+	suite.Require().NoError(s.Update(func(tx store.Tx) error {
 		suite.NoError(store.CreateService(tx, s4))
 		return nil
 	}))
 	watchService(suite.T(), serviceWatch, true, nil)
 
-	suite.NoError(s.Update(func(tx store.Tx) error {
+	suite.Require().NoError(s.Update(func(tx store.Tx) error {
 		t7 := &api.Task{
 			ID: "testTaskID7",
 			Status: api.TaskStatus{
@@ -594,7 +595,7 @@ func (suite *testSuite) TestAllocator() {
 	watchTask(suite.T(), s, taskWatch, true, nil)
 
 	// Now remove the conflicting service.
-	suite.NoError(s.Update(func(tx store.Tx) error {
+	suite.Require().NoError(s.Update(func(tx store.Tx) error {
 		suite.NoError(store.DeleteService(tx, s3.ID))
 		return nil
 	}))
@@ -608,7 +609,7 @@ func (suite *testSuite) TestNoDuplicateIPs() {
 	defer s.Close()
 
 	// Try adding some objects to store before allocator is started
-	suite.NoError(s.Update(func(tx store.Tx) error {
+	suite.Require().NoError(s.Update(func(tx store.Tx) error {
 		// populate ingress network
 		in := &api.Network{
 			ID: "ingress-nw-id",
@@ -704,7 +705,7 @@ func (suite *testSuite) TestNoDuplicateIPs() {
 
 	reps := 100
 	for i := 0; i != reps; i++ {
-		suite.NoError(s.Update(func(tx store.Tx) error {
+		suite.Require().NoError(s.Update(func(tx store.Tx) error {
 			t2 := &api.Task{
 				// The allocator iterates over the tasks in
 				// lexical order, so number tasks in descending
@@ -738,7 +739,7 @@ func (suite *testSuite) TestAllocatorRestoreForDuplicateIPs() {
 	defer s.Close()
 	// Create 3 services with 1 task each
 	numsvcstsks := 3
-	suite.NoError(s.Update(func(tx store.Tx) error {
+	suite.Require().NoError(s.Update(func(tx store.Tx) error {
 		// populate ingress network
 		in := &api.Network{
 			ID: "ingress-nw-id",
@@ -803,7 +804,7 @@ func (suite *testSuite) TestAllocatorRestoreForDuplicateIPs() {
 	}))
 
 	for i := 0; i != numsvcstsks; i++ {
-		suite.NoError(s.Update(func(tx store.Tx) error {
+		suite.Require().NoError(s.Update(func(tx store.Tx) error {
 			tsk := &api.Task{
 				ID: "testTaskID" + strconv.Itoa(i),
 				Status: api.TaskStatus{
@@ -820,8 +821,8 @@ func (suite *testSuite) TestAllocatorRestoreForDuplicateIPs() {
 	assignedVIPs := make(map[string]bool)
 	assignedIPs := make(map[string]bool)
 	hasNoIPOverlapServices := func(fakeT assert.TestingT, service *api.Service) bool {
-		assert.NotEqual(fakeT, len(service.Endpoint.VirtualIPs), 0)
-		assert.NotEqual(fakeT, len(service.Endpoint.VirtualIPs[0].Addr), 0)
+		assert.NotEmpty(fakeT, service.Endpoint.VirtualIPs)
+		assert.NotEmpty(fakeT, service.Endpoint.VirtualIPs[0].Addr)
 
 		assignedVIP := service.Endpoint.VirtualIPs[0].Addr
 		if assignedVIPs[assignedVIP] {
@@ -835,8 +836,8 @@ func (suite *testSuite) TestAllocatorRestoreForDuplicateIPs() {
 	}
 
 	hasNoIPOverlapTasks := func(fakeT assert.TestingT, _ *store.MemoryStore, task *api.Task) bool {
-		assert.NotEqual(fakeT, len(task.Networks), 0)
-		assert.NotEqual(fakeT, len(task.Networks[0].Addresses), 0)
+		assert.NotEmpty(fakeT, task.Networks)
+		assert.NotEmpty(fakeT, task.Networks[0].Addresses)
 
 		assignedIP := task.Networks[0].Addresses[0]
 		if assignedIPs[assignedIP] {
@@ -875,7 +876,7 @@ func (suite *testSuite) TestAllocatorRestartNoEndpointSpec() {
 	defer s.Close()
 	// Create 3 services with 1 task each
 	numsvcstsks := 3
-	suite.NoError(s.Update(func(tx store.Tx) error {
+	suite.Require().NoError(s.Update(func(tx store.Tx) error {
 		// populate ingress network
 		in := &api.Network{
 			ID: "overlay1",
@@ -933,7 +934,7 @@ func (suite *testSuite) TestAllocatorRestartNoEndpointSpec() {
 	}))
 
 	for i := 0; i != numsvcstsks; i++ {
-		suite.NoError(s.Update(func(tx store.Tx) error {
+		suite.Require().NoError(s.Update(func(tx store.Tx) error {
 			tsk := &api.Task{
 				ID: "testTaskID" + strconv.Itoa(i),
 				Status: api.TaskStatus{
@@ -964,8 +965,8 @@ func (suite *testSuite) TestAllocatorRestartNoEndpointSpec() {
 	}
 	assignedIPs := make(map[string]bool)
 	hasNoIPOverlapServices := func(fakeT assert.TestingT, service *api.Service) bool {
-		assert.NotEqual(fakeT, len(service.Endpoint.VirtualIPs), 0)
-		assert.NotEqual(fakeT, len(service.Endpoint.VirtualIPs[0].Addr), 0)
+		assert.NotEmpty(fakeT, service.Endpoint.VirtualIPs)
+		assert.NotEmpty(fakeT, service.Endpoint.VirtualIPs[0].Addr)
 		assignedVIP := service.Endpoint.VirtualIPs[0].Addr
 		if assignedIPs[assignedVIP] {
 			suite.T().Fatalf("service %s assigned duplicate IP %s", service.ID, assignedVIP)
@@ -979,8 +980,8 @@ func (suite *testSuite) TestAllocatorRestartNoEndpointSpec() {
 	}
 
 	hasNoIPOverlapTasks := func(fakeT assert.TestingT, _ *store.MemoryStore, task *api.Task) bool {
-		assert.NotEqual(fakeT, len(task.Networks), 0)
-		assert.NotEqual(fakeT, len(task.Networks[0].Addresses), 0)
+		assert.NotEmpty(fakeT, task.Networks)
+		assert.NotEmpty(fakeT, task.Networks[0].Addresses)
 		assignedIP := task.Networks[0].Addresses[0]
 		if assignedIPs[assignedIP] {
 			suite.T().Fatalf("task %s assigned duplicate IP %s", task.ID, assignedIP)
@@ -1007,7 +1008,7 @@ func (suite *testSuite) TestAllocatorRestartNoEndpointSpec() {
 		watchTask(suite.T(), s, taskWatch, false, hasNoIPOverlapTasks)
 		watchService(suite.T(), serviceWatch, false, hasNoIPOverlapServices)
 	}
-	suite.Len(expectedIPs, 0)
+	suite.Empty(expectedIPs)
 }
 
 // TestAllocatorRestoreForUnallocatedNetwork tests allocator restart
@@ -1024,7 +1025,7 @@ func (suite *testSuite) TestAllocatorRestoreForUnallocatedNetwork() {
 	numsvcstsks := 3
 	var n1 *api.Network
 	var n2 *api.Network
-	suite.NoError(s.Update(func(tx store.Tx) error {
+	suite.Require().NoError(s.Update(func(tx store.Tx) error {
 		// populate ingress network
 		in := &api.Network{
 			ID: "ingress-nw-id",
@@ -1131,7 +1132,7 @@ func (suite *testSuite) TestAllocatorRestoreForUnallocatedNetwork() {
 	}))
 
 	for i := 0; i != numsvcstsks; i++ {
-		suite.NoError(s.Update(func(tx store.Tx) error {
+		suite.Require().NoError(s.Update(func(tx store.Tx) error {
 			tsk := &api.Task{
 				ID: "testTaskID" + strconv.Itoa(i),
 				Status: api.TaskStatus{
@@ -1162,8 +1163,8 @@ func (suite *testSuite) TestAllocatorRestoreForUnallocatedNetwork() {
 		"testTaskID2":    "10.1.0.7/24",
 	}
 	hasNoIPOverlapServices := func(fakeT assert.TestingT, service *api.Service) bool {
-		assert.NotEqual(fakeT, len(service.Endpoint.VirtualIPs), 0)
-		assert.NotEqual(fakeT, len(service.Endpoint.VirtualIPs[0].Addr), 0)
+		assert.NotEmpty(fakeT, service.Endpoint.VirtualIPs)
+		assert.NotEmpty(fakeT, service.Endpoint.VirtualIPs[0].Addr)
 		assignedVIP := service.Endpoint.VirtualIPs[1].Addr
 		if assignedIPs[assignedVIP] {
 			suite.T().Fatalf("service %s assigned duplicate IP %s", service.ID, assignedVIP)
@@ -1177,8 +1178,8 @@ func (suite *testSuite) TestAllocatorRestoreForUnallocatedNetwork() {
 	}
 
 	hasNoIPOverlapTasks := func(fakeT assert.TestingT, _ *store.MemoryStore, task *api.Task) bool {
-		assert.NotEqual(fakeT, len(task.Networks), 0)
-		assert.NotEqual(fakeT, len(task.Networks[0].Addresses), 0)
+		assert.NotEmpty(fakeT, task.Networks)
+		assert.NotEmpty(fakeT, task.Networks[0].Addresses)
 		assignedIP := task.Networks[1].Addresses[0]
 		if assignedIPs[assignedIP] {
 			suite.T().Fatalf("task %s assigned duplicate IP %s", task.ID, assignedIP)
@@ -1220,7 +1221,7 @@ func (suite *testSuite) TestNodeAllocator() {
 	}
 
 	// Try adding some objects to store before allocator is started
-	suite.NoError(s.Update(func(tx store.Tx) error {
+	suite.Require().NoError(s.Update(func(tx store.Tx) error {
 		// populate ingress network
 		in := &api.Network{
 			ID: "ingress",
@@ -1268,7 +1269,7 @@ func (suite *testSuite) TestNodeAllocator() {
 
 	defer suite.startAllocator(a)()
 
-	suite.NoError(s.Update(func(tx store.Tx) error {
+	suite.Require().NoError(s.Update(func(tx store.Tx) error {
 		// create a task assigned to this node that has a network attachment on
 		// n1
 		t1 := &api.Task{
@@ -1301,7 +1302,7 @@ func (suite *testSuite) TestNodeAllocator() {
 	node2 := &api.Node{
 		ID: "nodeID2",
 	}
-	suite.NoError(s.Update(func(tx store.Tx) error {
+	suite.Require().NoError(s.Update(func(tx store.Tx) error {
 		suite.NoError(store.CreateNode(tx, node2))
 		return nil
 	}))
@@ -1316,7 +1317,7 @@ func (suite *testSuite) TestNodeAllocator() {
 			},
 		},
 	}
-	suite.NoError(s.Update(func(tx store.Tx) error {
+	suite.Require().NoError(s.Update(func(tx store.Tx) error {
 		suite.NoError(store.CreateNetwork(tx, n2))
 		return nil
 	}))
@@ -1326,7 +1327,7 @@ func (suite *testSuite) TestNodeAllocator() {
 	watchNode(suite.T(), nodeWatch, true, isValidNode, node2, []string{"ingress"})               // node2
 
 	// add a task and validate that the node gets the network for the task
-	suite.NoError(s.Update(func(tx store.Tx) error {
+	suite.Require().NoError(s.Update(func(tx store.Tx) error {
 		// create a task assigned to this node that has a network attachment on
 		// n1
 		t2 := &api.Task{
@@ -1353,7 +1354,7 @@ func (suite *testSuite) TestNodeAllocator() {
 
 	// add another task with the same network to a node and validate that it
 	// still only has 1 attachment for that network
-	suite.NoError(s.Update(func(tx store.Tx) error {
+	suite.Require().NoError(s.Update(func(tx store.Tx) error {
 		// create a task assigned to this node that has a network attachment on
 		// n1
 		t3 := &api.Task{
@@ -1382,7 +1383,7 @@ func (suite *testSuite) TestNodeAllocator() {
 	// now remove that task we just created, and validate that the node still
 	// has an attachment for the other task
 	// Remove a node and validate remaining node has 2 LB IP addresses
-	suite.NoError(s.Update(func(tx store.Tx) error {
+	suite.Require().NoError(s.Update(func(tx store.Tx) error {
 		suite.NoError(store.DeleteTask(tx, "task1"))
 		return nil
 	}))
@@ -1393,7 +1394,7 @@ func (suite *testSuite) TestNodeAllocator() {
 
 	// now remove another task. this time the attachment on the node should be
 	// removed as well
-	suite.NoError(s.Update(func(tx store.Tx) error {
+	suite.Require().NoError(s.Update(func(tx store.Tx) error {
 		suite.NoError(store.DeleteTask(tx, "task2"))
 		return nil
 	}))
@@ -1402,7 +1403,7 @@ func (suite *testSuite) TestNodeAllocator() {
 	watchNode(suite.T(), nodeWatch, true, isValidNode, node1, []string{"ingress", "overlayID1"}) // node1
 
 	// Remove a node and validate remaining node has 2 LB IP addresses
-	suite.NoError(s.Update(func(tx store.Tx) error {
+	suite.Require().NoError(s.Update(func(tx store.Tx) error {
 		suite.NoError(store.DeleteNode(tx, node2.ID))
 		return nil
 	}))
@@ -1426,7 +1427,7 @@ func (suite *testSuite) TestNodeAllocator() {
 			DriverConfig: &api.Driver{Name: "bridge"},
 		},
 	}
-	suite.NoError(s.Update(func(tx store.Tx) error {
+	suite.Require().NoError(s.Update(func(tx store.Tx) error {
 		suite.NoError(store.CreateNetwork(tx, p))
 		return nil
 	}))
@@ -1494,12 +1495,12 @@ func (suite *testSuite) TestNodeAttachmentOnLeadershipChange() {
 	}
 
 	// before starting the allocator, populate with these
-	suite.NoError(s.Update(func(tx store.Tx) error {
-		require.NoError(suite.T(), store.CreateNetwork(tx, net1))
-		require.NoError(suite.T(), store.CreateNetwork(tx, net2))
-		require.NoError(suite.T(), store.CreateNode(tx, node1))
-		require.NoError(suite.T(), store.CreateTask(tx, task1))
-		require.NoError(suite.T(), store.CreateTask(tx, task2))
+	suite.Require().NoError(s.Update(func(tx store.Tx) error {
+		suite.Require().NoError(store.CreateNetwork(tx, net1))
+		suite.Require().NoError(store.CreateNetwork(tx, net2))
+		suite.Require().NoError(store.CreateNode(tx, node1))
+		suite.Require().NoError(store.CreateTask(tx, task1))
+		suite.Require().NoError(store.CreateTask(tx, task2))
 		return nil
 	}))
 
@@ -1528,11 +1529,11 @@ func (suite *testSuite) TestNodeAttachmentOnLeadershipChange() {
 	// now update task2 to assign it to node1
 	s.Update(func(tx store.Tx) error {
 		task := store.GetTask(tx, task2.ID)
-		require.NotNil(suite.T(), task)
+		suite.Require().NotNil(task)
 		// make sure it has 1 network attachment
 		suite.Len(task.Networks, 1)
 		task.NodeID = node1.ID
-		require.NoError(suite.T(), store.UpdateTask(tx, task))
+		suite.Require().NoError(store.UpdateTask(tx, task))
 		return nil
 	})
 
@@ -1552,7 +1553,7 @@ func (suite *testSuite) TestAllocateServiceConflictingUserDefinedPorts() {
 
 	const svcID = "testID1"
 	// Try adding some objects to store before allocator is started
-	suite.NoError(s.Update(func(tx store.Tx) error {
+	suite.Require().NoError(s.Update(func(tx store.Tx) error {
 		// populate ingress network
 		in := &api.Network{
 			ID: "ingress-nw-id",
@@ -1615,7 +1616,7 @@ func (suite *testSuite) TestAllocateServiceConflictingUserDefinedPorts() {
 	})
 
 	// Update the service to remove the conflicting port
-	suite.NoError(s.Update(func(tx store.Tx) error {
+	suite.Require().NoError(s.Update(func(tx store.Tx) error {
 		s1 := store.GetService(tx, svcID)
 		if suite.NotNil(s1) {
 			s1.Spec.Endpoint.Ports[1].TargetPort = 1235
@@ -1658,7 +1659,7 @@ func (suite *testSuite) TestDeallocateServiceAllocate() {
 	}
 
 	// Try adding some objects to store before allocator is started
-	suite.NoError(s.Update(func(tx store.Tx) error {
+	suite.Require().NoError(s.Update(func(tx store.Tx) error {
 		// populate ingress network
 		in := &api.Network{
 			ID: "ingress-nw-id",
@@ -1702,7 +1703,7 @@ func (suite *testSuite) TestDeallocateServiceAllocate() {
 	watchService(suite.T(), serviceWatch, false, isTestService("testID1"))
 
 	// Deallocate the service and allocate a new one with the same port spec
-	suite.NoError(s.Update(func(tx store.Tx) error {
+	suite.Require().NoError(s.Update(func(tx store.Tx) error {
 		suite.NoError(store.DeleteService(tx, "testID1"))
 		suite.NoError(store.CreateService(tx, newSvc("testID2")))
 		return nil
@@ -1718,7 +1719,7 @@ func (suite *testSuite) TestServiceAddRemovePorts() {
 
 	const svcID = "testID1"
 	// Try adding some objects to store before allocator is started
-	suite.NoError(s.Update(func(tx store.Tx) error {
+	suite.Require().NoError(s.Update(func(tx store.Tx) error {
 		// populate ingress network
 		in := &api.Network{
 			ID: "ingress-nw-id",
@@ -1797,7 +1798,7 @@ func (suite *testSuite) TestServiceAddRemovePorts() {
 	allocatedVIP := probedVIP
 
 	// Unpublish port
-	suite.NoError(s.Update(func(tx store.Tx) error {
+	suite.Require().NoError(s.Update(func(tx store.Tx) error {
 		s1 := store.GetService(tx, svcID)
 		if suite.NotNil(s1) {
 			s1.Spec.Endpoint.Ports = nil
@@ -1810,7 +1811,7 @@ func (suite *testSuite) TestServiceAddRemovePorts() {
 
 	// Publish port again and ensure VIP is not the same that was deallocated.
 	// Since IP allocation is serial we should receive the next available IP.
-	suite.NoError(s.Update(func(tx store.Tx) error {
+	suite.Require().NoError(s.Update(func(tx store.Tx) error {
 		s1 := store.GetService(tx, svcID)
 		if suite.NotNil(s1) {
 			s1.Spec.Endpoint.Ports = append(s1.Spec.Endpoint.Ports, &api.PortConfig{Name: "some_tcp",
@@ -1832,7 +1833,7 @@ func (suite *testSuite) TestServiceUpdatePort() {
 
 	const svcID = "testID1"
 	// Try adding some objects to store before allocator is started
-	suite.NoError(s.Update(func(tx store.Tx) error {
+	suite.Require().NoError(s.Update(func(tx store.Tx) error {
 		// populate ingress network
 		in := &api.Network{
 			ID: "ingress-nw-id",
@@ -1891,7 +1892,7 @@ func (suite *testSuite) TestServiceUpdatePort() {
 		return assert.Equal(t, svcID, service.ID) && assert.Len(t, service.Endpoint.Ports, 2)
 	})
 
-	suite.NoError(s.Update(func(tx store.Tx) error {
+	suite.Require().NoError(s.Update(func(tx store.Tx) error {
 		s1 := store.GetService(tx, svcID)
 		if suite.NotNil(s1) {
 			s1.Spec.Endpoint.Ports[1].PublishedPort = 1235
@@ -1915,7 +1916,7 @@ func (suite *testSuite) TestServicePortAllocationIsRepeatable() {
 
 		const svcID = "testID1"
 		// Try adding some objects to store before allocator is started
-		suite.NoError(s.Update(func(tx store.Tx) error {
+		suite.Require().NoError(s.Update(func(tx store.Tx) error {
 			// populate ingress network
 			in := &api.Network{
 				ID: "ingress-nw-id",
@@ -1991,12 +1992,12 @@ func isValidNode(t assert.TestingT, originalNode, updatedNode *api.Node, network
 		return false
 	}
 
-	if !assert.Equal(t, len(updatedNode.Attachments), len(networks)) {
+	if !assert.Len(t, networks, len(updatedNode.Attachments)) {
 		return false
 	}
 
 	for _, na := range updatedNode.Attachments {
-		if !assert.Equal(t, len(na.Addresses), 1) {
+		if !assert.Len(t, na.Addresses, 1) {
 			return false
 		}
 	}
@@ -2008,23 +2009,23 @@ func isValidNetwork(t assert.TestingT, n *api.Network) bool {
 	if _, ok := n.Spec.Annotations.Labels["com.docker.swarm.predefined"]; ok {
 		return true
 	}
-	return assert.NotEqual(t, n.IPAM.Configs, nil) &&
-		assert.Equal(t, len(n.IPAM.Configs), 1) &&
-		assert.Equal(t, n.IPAM.Configs[0].Range, "") &&
-		assert.Equal(t, len(n.IPAM.Configs[0].Reserved), 0) &&
+	return assert.NotNil(t, n.IPAM.Configs) &&
+		assert.Len(t, n.IPAM.Configs, 1) &&
+		assert.Empty(t, n.IPAM.Configs[0].Range) &&
+		assert.Empty(t, n.IPAM.Configs[0].Reserved) &&
 		isValidSubnet(t, n.IPAM.Configs[0].Subnet) &&
-		assert.NotEqual(t, net.ParseIP(n.IPAM.Configs[0].Gateway), nil)
+		assert.NotNil(t, net.ParseIP(n.IPAM.Configs[0].Gateway))
 }
 
 func isValidTask(t assert.TestingT, s *store.MemoryStore, task *api.Task) bool {
 	return isValidNetworkAttachment(t, task) &&
 		isValidEndpoint(t, s, task) &&
-		assert.Equal(t, task.Status.State, api.TaskStatePending)
+		assert.Equal(t, api.TaskStatePending, task.Status.State)
 }
 
 func isValidNetworkAttachment(t assert.TestingT, task *api.Task) bool {
 	if len(task.Networks) != 0 {
-		return assert.Equal(t, len(task.Networks[0].Addresses), 1) &&
+		return assert.Len(t, task.Networks[0].Addresses, 1) &&
 			isValidSubnet(t, task.Networks[0].Addresses[0])
 	}
 
