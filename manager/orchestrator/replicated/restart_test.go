@@ -56,7 +56,7 @@ func TestOrchestratorRestartOnAny(t *testing.T) {
 		assert.NoError(t, store.CreateService(tx, j1))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Start the orchestrator.
 	go func() {
@@ -64,12 +64,12 @@ func TestOrchestratorRestartOnAny(t *testing.T) {
 	}()
 
 	observedTask1 := testutils.WatchTaskCreate(t, watch)
-	assert.Equal(t, observedTask1.Status.State, api.TaskStateNew)
-	assert.Equal(t, observedTask1.ServiceAnnotations.Name, "name1")
+	assert.Equal(t, api.TaskStateNew, observedTask1.Status.State)
+	assert.Equal(t, "name1", observedTask1.ServiceAnnotations.Name)
 
 	observedTask2 := testutils.WatchTaskCreate(t, watch)
-	assert.Equal(t, observedTask2.Status.State, api.TaskStateNew)
-	assert.Equal(t, observedTask2.ServiceAnnotations.Name, "name1")
+	assert.Equal(t, api.TaskStateNew, observedTask2.Status.State)
+	assert.Equal(t, "name1", observedTask2.ServiceAnnotations.Name)
 
 	// Fail the first task. Confirm that it gets restarted.
 	updatedTask1 := observedTask1.Copy()
@@ -78,21 +78,21 @@ func TestOrchestratorRestartOnAny(t *testing.T) {
 		assert.NoError(t, store.UpdateTask(tx, updatedTask1))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	testutils.Expect(t, watch, state.EventCommit{})
 	testutils.Expect(t, watch, api.EventUpdateTask{})
 	testutils.Expect(t, watch, state.EventCommit{})
 	testutils.Expect(t, watch, api.EventUpdateTask{})
 
 	observedTask3 := testutils.WatchTaskCreate(t, watch)
-	assert.Equal(t, observedTask3.Status.State, api.TaskStateNew)
-	assert.Equal(t, observedTask3.ServiceAnnotations.Name, "name1")
+	assert.Equal(t, api.TaskStateNew, observedTask3.Status.State)
+	assert.Equal(t, "name1", observedTask3.ServiceAnnotations.Name)
 
 	testutils.Expect(t, watch, state.EventCommit{})
 
 	observedTask4 := testutils.WatchTaskUpdate(t, watch)
-	assert.Equal(t, observedTask4.DesiredState, api.TaskStateRunning)
-	assert.Equal(t, observedTask4.ServiceAnnotations.Name, "name1")
+	assert.Equal(t, api.TaskStateRunning, observedTask4.DesiredState)
+	assert.Equal(t, "name1", observedTask4.ServiceAnnotations.Name)
 
 	// Mark the second task as completed. Confirm that it gets restarted.
 	updatedTask2 := observedTask2.Copy()
@@ -101,21 +101,21 @@ func TestOrchestratorRestartOnAny(t *testing.T) {
 		assert.NoError(t, store.UpdateTask(tx, updatedTask2))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	testutils.Expect(t, watch, state.EventCommit{})
 	testutils.Expect(t, watch, api.EventUpdateTask{})
 	testutils.Expect(t, watch, state.EventCommit{})
 	testutils.Expect(t, watch, api.EventUpdateTask{})
 
 	observedTask5 := testutils.WatchTaskCreate(t, watch)
-	assert.Equal(t, observedTask5.Status.State, api.TaskStateNew)
-	assert.Equal(t, observedTask5.ServiceAnnotations.Name, "name1")
+	assert.Equal(t, api.TaskStateNew, observedTask5.Status.State)
+	assert.Equal(t, "name1", observedTask5.ServiceAnnotations.Name)
 
 	testutils.Expect(t, watch, state.EventCommit{})
 
 	observedTask6 := testutils.WatchTaskUpdate(t, watch)
-	assert.Equal(t, observedTask6.DesiredState, api.TaskStateRunning)
-	assert.Equal(t, observedTask6.ServiceAnnotations.Name, "name1")
+	assert.Equal(t, api.TaskStateRunning, observedTask6.DesiredState)
+	assert.Equal(t, "name1", observedTask6.ServiceAnnotations.Name)
 }
 
 func TestOrchestratorRestartOnFailure(t *testing.T) {
@@ -161,7 +161,7 @@ func TestOrchestratorRestartOnFailure(t *testing.T) {
 		assert.NoError(t, store.CreateService(tx, j1))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Start the orchestrator.
 	go func() {
@@ -169,12 +169,12 @@ func TestOrchestratorRestartOnFailure(t *testing.T) {
 	}()
 
 	observedTask1 := testutils.WatchTaskCreate(t, watch)
-	assert.Equal(t, observedTask1.Status.State, api.TaskStateNew)
-	assert.Equal(t, observedTask1.ServiceAnnotations.Name, "name1")
+	assert.Equal(t, api.TaskStateNew, observedTask1.Status.State)
+	assert.Equal(t, "name1", observedTask1.ServiceAnnotations.Name)
 
 	observedTask2 := testutils.WatchTaskCreate(t, watch)
-	assert.Equal(t, observedTask2.Status.State, api.TaskStateNew)
-	assert.Equal(t, observedTask2.ServiceAnnotations.Name, "name1")
+	assert.Equal(t, api.TaskStateNew, observedTask2.Status.State)
+	assert.Equal(t, "name1", observedTask2.ServiceAnnotations.Name)
 
 	// Fail the first task. Confirm that it gets restarted.
 	updatedTask1 := observedTask1.Copy()
@@ -183,18 +183,18 @@ func TestOrchestratorRestartOnFailure(t *testing.T) {
 		assert.NoError(t, store.UpdateTask(tx, updatedTask1))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	testutils.Expect(t, watch, api.EventUpdateTask{})
 	testutils.Expect(t, watch, api.EventUpdateTask{})
 
 	observedTask3 := testutils.WatchTaskCreate(t, watch)
-	assert.Equal(t, observedTask3.Status.State, api.TaskStateNew)
-	assert.Equal(t, observedTask3.DesiredState, api.TaskStateReady)
-	assert.Equal(t, observedTask3.ServiceAnnotations.Name, "name1")
+	assert.Equal(t, api.TaskStateNew, observedTask3.Status.State)
+	assert.Equal(t, api.TaskStateReady, observedTask3.DesiredState)
+	assert.Equal(t, "name1", observedTask3.ServiceAnnotations.Name)
 
 	observedTask4 := testutils.WatchTaskUpdate(t, watch)
-	assert.Equal(t, observedTask4.DesiredState, api.TaskStateRunning)
-	assert.Equal(t, observedTask4.ServiceAnnotations.Name, "name1")
+	assert.Equal(t, api.TaskStateRunning, observedTask4.DesiredState)
+	assert.Equal(t, "name1", observedTask4.ServiceAnnotations.Name)
 
 	// Mark the second task as completed. Confirm that it does not get restarted.
 	updatedTask2 := observedTask2.Copy()
@@ -203,7 +203,7 @@ func TestOrchestratorRestartOnFailure(t *testing.T) {
 		assert.NoError(t, store.UpdateTask(tx, updatedTask2))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	testutils.Expect(t, watch, api.EventUpdateTask{})
 	testutils.Expect(t, watch, api.EventUpdateTask{})
 
@@ -221,7 +221,7 @@ func TestOrchestratorRestartOnFailure(t *testing.T) {
 		assert.NoError(t, store.UpdateService(tx, service))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	select {
 	case <-watch:
@@ -238,7 +238,7 @@ func TestOrchestratorRestartOnFailure(t *testing.T) {
 		assert.NoError(t, store.UpdateService(tx, service))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	testutils.Expect(t, watch, api.EventCreateTask{})
 }
 
@@ -284,7 +284,7 @@ func TestOrchestratorRestartOnNone(t *testing.T) {
 		assert.NoError(t, store.CreateService(tx, j1))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Start the orchestrator.
 	go func() {
@@ -292,12 +292,12 @@ func TestOrchestratorRestartOnNone(t *testing.T) {
 	}()
 
 	observedTask1 := testutils.WatchTaskCreate(t, watch)
-	assert.Equal(t, observedTask1.Status.State, api.TaskStateNew)
-	assert.Equal(t, observedTask1.ServiceAnnotations.Name, "name1")
+	assert.Equal(t, api.TaskStateNew, observedTask1.Status.State)
+	assert.Equal(t, "name1", observedTask1.ServiceAnnotations.Name)
 
 	observedTask2 := testutils.WatchTaskCreate(t, watch)
-	assert.Equal(t, observedTask2.Status.State, api.TaskStateNew)
-	assert.Equal(t, observedTask2.ServiceAnnotations.Name, "name1")
+	assert.Equal(t, api.TaskStateNew, observedTask2.Status.State)
+	assert.Equal(t, "name1", observedTask2.ServiceAnnotations.Name)
 
 	// Fail the first task. Confirm that it does not get restarted.
 	updatedTask1 := observedTask1.Copy()
@@ -306,7 +306,7 @@ func TestOrchestratorRestartOnNone(t *testing.T) {
 		assert.NoError(t, store.UpdateTask(tx, updatedTask1))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	testutils.Expect(t, watch, api.EventUpdateTask{})
 	testutils.Expect(t, watch, api.EventUpdateTask{})
 
@@ -323,7 +323,7 @@ func TestOrchestratorRestartOnNone(t *testing.T) {
 		assert.NoError(t, store.UpdateTask(tx, updatedTask2))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	testutils.Expect(t, watch, api.EventUpdateTask{})
 	testutils.Expect(t, watch, api.EventUpdateTask{})
 
@@ -341,7 +341,7 @@ func TestOrchestratorRestartOnNone(t *testing.T) {
 		assert.NoError(t, store.UpdateService(tx, service))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	select {
 	case <-watch:
@@ -358,7 +358,7 @@ func TestOrchestratorRestartOnNone(t *testing.T) {
 		assert.NoError(t, store.UpdateService(tx, service))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	testutils.Expect(t, watch, api.EventCreateTask{})
 	newTask := testutils.WatchTaskUpdate(t, watch)
 	assert.Equal(t, api.TaskStateRunning, newTask.DesiredState)
@@ -369,7 +369,7 @@ func TestOrchestratorRestartOnNone(t *testing.T) {
 		assert.NoError(t, store.UpdateTask(tx, newTask))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	testutils.Expect(t, watch, api.EventUpdateTask{})
 
 	testutils.Expect(t, watch, api.EventCreateTask{})
@@ -418,7 +418,7 @@ func TestOrchestratorRestartDelay(t *testing.T) {
 		assert.NoError(t, store.CreateService(tx, j1))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Start the orchestrator.
 	go func() {
@@ -426,12 +426,12 @@ func TestOrchestratorRestartDelay(t *testing.T) {
 	}()
 
 	observedTask1 := testutils.WatchTaskCreate(t, watch)
-	assert.Equal(t, observedTask1.Status.State, api.TaskStateNew)
-	assert.Equal(t, observedTask1.ServiceAnnotations.Name, "name1")
+	assert.Equal(t, api.TaskStateNew, observedTask1.Status.State)
+	assert.Equal(t, "name1", observedTask1.ServiceAnnotations.Name)
 
 	observedTask2 := testutils.WatchTaskCreate(t, watch)
-	assert.Equal(t, observedTask2.Status.State, api.TaskStateNew)
-	assert.Equal(t, observedTask2.ServiceAnnotations.Name, "name1")
+	assert.Equal(t, api.TaskStateNew, observedTask2.Status.State)
+	assert.Equal(t, "name1", observedTask2.ServiceAnnotations.Name)
 
 	// Fail the first task. Confirm that it gets restarted.
 	updatedTask1 := observedTask1.Copy()
@@ -441,7 +441,7 @@ func TestOrchestratorRestartDelay(t *testing.T) {
 		assert.NoError(t, store.UpdateTask(tx, updatedTask1))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	testutils.Expect(t, watch, state.EventCommit{})
 	testutils.Expect(t, watch, api.EventUpdateTask{})
 	testutils.Expect(t, watch, state.EventCommit{})
@@ -449,9 +449,9 @@ func TestOrchestratorRestartDelay(t *testing.T) {
 
 	observedTask3 := testutils.WatchTaskCreate(t, watch)
 	testutils.Expect(t, watch, state.EventCommit{})
-	assert.Equal(t, observedTask3.Status.State, api.TaskStateNew)
-	assert.Equal(t, observedTask3.DesiredState, api.TaskStateReady)
-	assert.Equal(t, observedTask3.ServiceAnnotations.Name, "name1")
+	assert.Equal(t, api.TaskStateNew, observedTask3.Status.State)
+	assert.Equal(t, api.TaskStateReady, observedTask3.DesiredState)
+	assert.Equal(t, "name1", observedTask3.ServiceAnnotations.Name)
 
 	observedTask4 := testutils.WatchTaskUpdate(t, watch)
 	after := time.Now()
@@ -462,9 +462,9 @@ func TestOrchestratorRestartDelay(t *testing.T) {
 		t.Fatalf("restart delay should have elapsed. Got: %v", after.Sub(before))
 	}
 
-	assert.Equal(t, observedTask4.Status.State, api.TaskStateNew)
-	assert.Equal(t, observedTask4.DesiredState, api.TaskStateRunning)
-	assert.Equal(t, observedTask4.ServiceAnnotations.Name, "name1")
+	assert.Equal(t, api.TaskStateNew, observedTask4.Status.State)
+	assert.Equal(t, api.TaskStateRunning, observedTask4.DesiredState)
+	assert.Equal(t, "name1", observedTask4.ServiceAnnotations.Name)
 }
 
 func TestOrchestratorRestartMaxAttempts(t *testing.T) {
@@ -514,7 +514,7 @@ func TestOrchestratorRestartMaxAttempts(t *testing.T) {
 		assert.NoError(t, store.CreateService(tx, j1))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Start the orchestrator.
 	go func() {
@@ -528,14 +528,14 @@ func TestOrchestratorRestartMaxAttempts(t *testing.T) {
 			assert.NoError(t, store.UpdateTask(tx, task))
 			return nil
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		testutils.Expect(t, watch, api.EventUpdateTask{})
 		task = testutils.WatchShutdownTask(t, watch)
 		if expectRestart {
 			createdTask := testutils.WatchTaskCreate(t, watch)
-			assert.Equal(t, createdTask.Status.State, api.TaskStateNew)
-			assert.Equal(t, createdTask.DesiredState, api.TaskStateReady)
-			assert.Equal(t, createdTask.ServiceAnnotations.Name, "name1")
+			assert.Equal(t, api.TaskStateNew, createdTask.Status.State)
+			assert.Equal(t, api.TaskStateReady, createdTask.DesiredState)
+			assert.Equal(t, "name1", createdTask.ServiceAnnotations.Name)
 		}
 		err = s.Update(func(tx store.Tx) error {
 			task := task.Copy()
@@ -543,14 +543,14 @@ func TestOrchestratorRestartMaxAttempts(t *testing.T) {
 			assert.NoError(t, store.UpdateTask(tx, task))
 			return nil
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		testutils.Expect(t, watch, api.EventUpdateTask{})
 	}
 
 	testRestart := func(serviceUpdated bool) {
 		observedTask1 := testutils.WatchTaskCreate(t, watch)
-		assert.Equal(t, observedTask1.Status.State, api.TaskStateNew)
-		assert.Equal(t, observedTask1.ServiceAnnotations.Name, "name1")
+		assert.Equal(t, api.TaskStateNew, observedTask1.Status.State)
+		assert.Equal(t, "name1", observedTask1.ServiceAnnotations.Name)
 
 		if serviceUpdated {
 			runnableTask := testutils.WatchTaskUpdate(t, watch)
@@ -562,14 +562,14 @@ func TestOrchestratorRestartMaxAttempts(t *testing.T) {
 				assert.NoError(t, store.UpdateTask(tx, task))
 				return nil
 			})
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			testutils.Expect(t, watch, api.EventUpdateTask{})
 		}
 
 		observedTask2 := testutils.WatchTaskCreate(t, watch)
-		assert.Equal(t, observedTask2.Status.State, api.TaskStateNew)
-		assert.Equal(t, observedTask2.ServiceAnnotations.Name, "name1")
+		assert.Equal(t, api.TaskStateNew, observedTask2.Status.State)
+		assert.Equal(t, "name1", observedTask2.ServiceAnnotations.Name)
 
 		if serviceUpdated {
 			testutils.Expect(t, watch, api.EventUpdateTask{})
@@ -588,17 +588,17 @@ func TestOrchestratorRestartMaxAttempts(t *testing.T) {
 			t.Fatal("restart delay should have elapsed")
 		}
 
-		assert.Equal(t, observedTask4.Status.State, api.TaskStateNew)
-		assert.Equal(t, observedTask4.DesiredState, api.TaskStateRunning)
-		assert.Equal(t, observedTask4.ServiceAnnotations.Name, "name1")
+		assert.Equal(t, api.TaskStateNew, observedTask4.Status.State)
+		assert.Equal(t, api.TaskStateRunning, observedTask4.DesiredState)
+		assert.Equal(t, "name1", observedTask4.ServiceAnnotations.Name)
 
 		// Fail the second task. Confirm that it gets restarted.
 		failTask(observedTask2, true)
 
 		observedTask6 := testutils.WatchTaskUpdate(t, watch) // task gets started after a delay
-		assert.Equal(t, observedTask6.Status.State, api.TaskStateNew)
-		assert.Equal(t, observedTask6.DesiredState, api.TaskStateRunning)
-		assert.Equal(t, observedTask6.ServiceAnnotations.Name, "name1")
+		assert.Equal(t, api.TaskStateNew, observedTask6.Status.State)
+		assert.Equal(t, api.TaskStateRunning, observedTask6.DesiredState)
+		assert.Equal(t, "name1", observedTask6.ServiceAnnotations.Name)
 
 		// Fail the first instance again. It should not be restarted.
 		failTask(observedTask4, false)
@@ -630,7 +630,7 @@ func TestOrchestratorRestartMaxAttempts(t *testing.T) {
 		assert.NoError(t, store.UpdateService(tx, s))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	testRestart(true)
 }
@@ -677,7 +677,7 @@ func TestOrchestratorRestartWindow(t *testing.T) {
 		assert.NoError(t, store.CreateService(tx, j1))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Start the orchestrator.
 	go func() {
@@ -685,12 +685,12 @@ func TestOrchestratorRestartWindow(t *testing.T) {
 	}()
 
 	observedTask1 := testutils.WatchTaskCreate(t, watch)
-	assert.Equal(t, observedTask1.Status.State, api.TaskStateNew)
-	assert.Equal(t, observedTask1.ServiceAnnotations.Name, "name1")
+	assert.Equal(t, api.TaskStateNew, observedTask1.Status.State)
+	assert.Equal(t, "name1", observedTask1.ServiceAnnotations.Name)
 
 	observedTask2 := testutils.WatchTaskCreate(t, watch)
-	assert.Equal(t, observedTask2.Status.State, api.TaskStateNew)
-	assert.Equal(t, observedTask2.ServiceAnnotations.Name, "name1")
+	assert.Equal(t, api.TaskStateNew, observedTask2.Status.State)
+	assert.Equal(t, "name1", observedTask2.ServiceAnnotations.Name)
 
 	// Fail the first task. Confirm that it gets restarted.
 	updatedTask1 := observedTask1.Copy()
@@ -700,7 +700,7 @@ func TestOrchestratorRestartWindow(t *testing.T) {
 		assert.NoError(t, store.UpdateTask(tx, updatedTask1))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	testutils.Expect(t, watch, state.EventCommit{})
 	testutils.Expect(t, watch, api.EventUpdateTask{})
 	testutils.Expect(t, watch, state.EventCommit{})
@@ -708,9 +708,9 @@ func TestOrchestratorRestartWindow(t *testing.T) {
 
 	observedTask3 := testutils.WatchTaskCreate(t, watch)
 	testutils.Expect(t, watch, state.EventCommit{})
-	assert.Equal(t, observedTask3.Status.State, api.TaskStateNew)
-	assert.Equal(t, observedTask3.DesiredState, api.TaskStateReady)
-	assert.Equal(t, observedTask3.ServiceAnnotations.Name, "name1")
+	assert.Equal(t, api.TaskStateNew, observedTask3.Status.State)
+	assert.Equal(t, api.TaskStateReady, observedTask3.DesiredState)
+	assert.Equal(t, "name1", observedTask3.ServiceAnnotations.Name)
 
 	observedTask4 := testutils.WatchTaskUpdate(t, watch)
 	after := time.Now()
@@ -721,9 +721,9 @@ func TestOrchestratorRestartWindow(t *testing.T) {
 		t.Fatal("restart delay should have elapsed")
 	}
 
-	assert.Equal(t, observedTask4.Status.State, api.TaskStateNew)
-	assert.Equal(t, observedTask4.DesiredState, api.TaskStateRunning)
-	assert.Equal(t, observedTask4.ServiceAnnotations.Name, "name1")
+	assert.Equal(t, api.TaskStateNew, observedTask4.Status.State)
+	assert.Equal(t, api.TaskStateRunning, observedTask4.DesiredState)
+	assert.Equal(t, "name1", observedTask4.ServiceAnnotations.Name)
 
 	// Fail the second task. Confirm that it gets restarted.
 	updatedTask2 := observedTask2.Copy()
@@ -732,7 +732,7 @@ func TestOrchestratorRestartWindow(t *testing.T) {
 		assert.NoError(t, store.UpdateTask(tx, updatedTask2))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	testutils.Expect(t, watch, state.EventCommit{})
 	testutils.Expect(t, watch, api.EventUpdateTask{})
 	testutils.Expect(t, watch, state.EventCommit{})
@@ -740,15 +740,15 @@ func TestOrchestratorRestartWindow(t *testing.T) {
 
 	observedTask5 := testutils.WatchTaskCreate(t, watch)
 	testutils.Expect(t, watch, state.EventCommit{})
-	assert.Equal(t, observedTask5.Status.State, api.TaskStateNew)
-	assert.Equal(t, observedTask5.DesiredState, api.TaskStateReady)
-	assert.Equal(t, observedTask5.ServiceAnnotations.Name, "name1")
+	assert.Equal(t, api.TaskStateNew, observedTask5.Status.State)
+	assert.Equal(t, api.TaskStateReady, observedTask5.DesiredState)
+	assert.Equal(t, "name1", observedTask5.ServiceAnnotations.Name)
 
 	observedTask6 := testutils.WatchTaskUpdate(t, watch) // task gets started after a delay
 	testutils.Expect(t, watch, state.EventCommit{})
-	assert.Equal(t, observedTask6.Status.State, api.TaskStateNew)
-	assert.Equal(t, observedTask6.DesiredState, api.TaskStateRunning)
-	assert.Equal(t, observedTask6.ServiceAnnotations.Name, "name1")
+	assert.Equal(t, api.TaskStateNew, observedTask6.Status.State)
+	assert.Equal(t, api.TaskStateRunning, observedTask6.DesiredState)
+	assert.Equal(t, "name1", observedTask6.ServiceAnnotations.Name)
 
 	// Fail the first instance again. It should not be restarted.
 	updatedTask1 = observedTask3.Copy()
@@ -757,7 +757,7 @@ func TestOrchestratorRestartWindow(t *testing.T) {
 		assert.NoError(t, store.UpdateTask(tx, updatedTask1))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	testutils.Expect(t, watch, api.EventUpdateTask{})
 	testutils.Expect(t, watch, state.EventCommit{})
 	testutils.Expect(t, watch, api.EventUpdateTask{})
@@ -780,15 +780,15 @@ func TestOrchestratorRestartWindow(t *testing.T) {
 		assert.NoError(t, store.UpdateTask(tx, updatedTask2))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	testutils.Expect(t, watch, api.EventUpdateTask{})
 	testutils.Expect(t, watch, state.EventCommit{})
 	testutils.Expect(t, watch, api.EventUpdateTask{})
 
 	observedTask7 := testutils.WatchTaskCreate(t, watch)
 	testutils.Expect(t, watch, state.EventCommit{})
-	assert.Equal(t, observedTask7.Status.State, api.TaskStateNew)
-	assert.Equal(t, observedTask7.DesiredState, api.TaskStateReady)
+	assert.Equal(t, api.TaskStateNew, observedTask7.Status.State)
+	assert.Equal(t, api.TaskStateReady, observedTask7.DesiredState)
 
 	observedTask8 := testutils.WatchTaskUpdate(t, watch)
 	after = time.Now()
@@ -799,7 +799,7 @@ func TestOrchestratorRestartWindow(t *testing.T) {
 		t.Fatal("restart delay should have elapsed")
 	}
 
-	assert.Equal(t, observedTask8.Status.State, api.TaskStateNew)
-	assert.Equal(t, observedTask8.DesiredState, api.TaskStateRunning)
-	assert.Equal(t, observedTask8.ServiceAnnotations.Name, "name1")
+	assert.Equal(t, api.TaskStateNew, observedTask8.Status.State)
+	assert.Equal(t, api.TaskStateRunning, observedTask8.DesiredState)
+	assert.Equal(t, "name1", observedTask8.ServiceAnnotations.Name)
 }

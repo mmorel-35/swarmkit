@@ -9,6 +9,7 @@ import (
 	"github.com/moby/swarmkit/v2/manager/state"
 	"github.com/moby/swarmkit/v2/manager/state/store"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDrain(t *testing.T) {
@@ -195,7 +196,7 @@ func TestDrain(t *testing.T) {
 		assert.NoError(t, store.CreateService(tx, initialService))
 		// Prepoulate nodes
 		for _, n := range initialNodeSet {
-			assert.NoError(t, store.CreateNode(tx, n))
+			require.NoError(t, store.CreateNode(tx, n))
 		}
 
 		// Prepopulate tasks
@@ -204,7 +205,7 @@ func TestDrain(t *testing.T) {
 		}
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	watch, cancel := state.Watch(s.WatchQueue(), api.EventUpdateTask{})
 	defer cancel()
@@ -233,7 +234,7 @@ func TestDrain(t *testing.T) {
 		assert.NoError(t, store.CreateTask(tx, task))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	deletion3 := testutils.WatchShutdownTask(t, watch)
 	assert.Equal(t, "newtask", deletion3.ID)
@@ -246,7 +247,7 @@ func TestDrain(t *testing.T) {
 		assert.NoError(t, store.UpdateNode(tx, n))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	deletion4 := testutils.WatchShutdownTask(t, watch)
 	assert.Equal(t, "id4", deletion4.ID)
@@ -257,7 +258,7 @@ func TestDrain(t *testing.T) {
 		assert.NoError(t, store.DeleteNode(tx, "id1"))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	deletion5 := testutils.WatchShutdownTask(t, watch)
 	assert.Equal(t, "id1", deletion5.ID)

@@ -94,7 +94,7 @@ func TestAgentStartStop(t *testing.T) {
 	defer cancel()
 
 	assert.Equal(t, errAgentNotStarted, agent.Stop(ctx))
-	assert.NoError(t, agent.Start(ctx))
+	require.NoError(t, agent.Start(ctx))
 
 	if err := agent.Start(ctx); err != errAgentStarted {
 		t.Fatalf("expected agent started error: %v", err)
@@ -447,8 +447,7 @@ func TestAgentExitsBasedOnSessionTracker(t *testing.T) {
 
 	select {
 	case err := <-getErr:
-		require.Error(t, err)
-		require.Contains(t, err.Error(), "I always error")
+		require.ErrorContains(t, err, "I always error")
 	case <-tester.agent.Ready():
 		require.FailNow(t, "agent should have failed to connect")
 	case <-time.After(5 * time.Second):
@@ -456,9 +455,9 @@ func TestAgentExitsBasedOnSessionTracker(t *testing.T) {
 	}
 
 	establishedSessions, errCounter, closeClounter := tracker.Stats()
-	require.Equal(t, establishedSessions, 0)
-	require.Equal(t, errCounter, 3)
-	require.Equal(t, closeClounter, 3)
+	require.Equal(t, 0, establishedSessions)
+	require.Equal(t, 3, errCounter)
+	require.Equal(t, 3, closeClounter)
 	currSession, closedSessions := tester.dispatcher.GetSessions()
 	require.Nil(t, currSession)
 	require.Len(t, closedSessions, 3)
@@ -488,11 +487,11 @@ func TestAgentRegistersSessionsWithSessionTracker(t *testing.T) {
 		}
 		return nil
 	}, 3*time.Millisecond))
-	require.Equal(t, errCounter, 0)
-	require.Equal(t, closeCounter, 0)
+	require.Equal(t, 0, errCounter)
+	require.Equal(t, 0, closeCounter)
 	currSession, closedSessions := tester.dispatcher.GetSessions()
 	require.NotNil(t, currSession)
-	require.Len(t, closedSessions, 0)
+	require.Empty(t, closedSessions)
 }
 
 type agentTester struct {

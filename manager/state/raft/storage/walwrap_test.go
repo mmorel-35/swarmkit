@@ -128,8 +128,7 @@ func TestReadAllEntryIncorrectlyEncrypted(t *testing.T) {
 	require.NoError(t, err)
 
 	_, _, _, err = wrapped.ReadAll()
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "not meowcoded")
+	require.ErrorContains(t, err, "not meowcoded")
 	require.NoError(t, wrapped.Close())
 }
 
@@ -175,8 +174,7 @@ func TestSaveEncryptionFails(t *testing.T) {
 
 	require.NoError(t, wrapped.SaveSnapshot(snapshot))
 	err = wrapped.Save(raftpb.HardState{}, entries)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "refusing to encrypt")
+	require.ErrorContains(t, err, "refusing to encrypt")
 	require.NoError(t, wrapped.Close())
 
 	// no entries are written at all

@@ -9,6 +9,7 @@ import (
 	"github.com/moby/swarmkit/v2/api"
 	"github.com/moby/swarmkit/v2/log"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const debugLevel = 5
@@ -70,7 +71,7 @@ func TestTaskManager(t *testing.T) {
 		select {
 		case <-acceptedWait:
 			task.DesiredState = api.TaskStateReady // proceed to ready
-			assert.NoError(t, tm.Update(ctx, task))
+			require.NoError(t, tm.Update(ctx, task))
 			acceptedWait = nil
 		case <-readyWait:
 			time.Sleep(time.Second)

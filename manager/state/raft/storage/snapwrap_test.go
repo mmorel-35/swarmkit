@@ -105,8 +105,7 @@ func TestSnapshotterLoadDecryptingFail(t *testing.T) {
 	wrapped := c.New(tempdir)
 
 	_, err = wrapped.Load()
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "not meowcoded")
+	require.ErrorContains(t, err, "not meowcoded")
 }
 
 // The snapshot data (but not metadata or anything else) is encryptd before being
@@ -136,8 +135,7 @@ func TestSnapshotterSavesSnapshotEncryptionFails(t *testing.T) {
 	}}, encryption.NoopCrypter)
 	wrapped := c.New(tempdir)
 	err := wrapped.SaveSnap(fakeSnapshotData)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "refusing to encrypt")
+	require.ErrorContains(t, err, "refusing to encrypt")
 
 	// nothing there to read
 	ogSnap := OriginalSnap.New(tempdir)

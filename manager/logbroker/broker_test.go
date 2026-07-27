@@ -17,6 +17,7 @@ import (
 	"github.com/moby/swarmkit/v2/ca/testutils"
 	"github.com/moby/swarmkit/v2/manager/state/store"
 	"github.com/moby/swarmkit/v2/protobuf/ptypes"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -85,11 +86,11 @@ func TestLogBrokerLogs(t *testing.T) {
 
 					// Each goroutine gets its own publisher
 					publisher, err := brokerClient.PublishLogs(ctx)
-					require.NoError(t, err)
+					assert.NoError(t, err)
 
 					defer func() {
 						_, err := publisher.CloseAndRecv()
-						require.NoError(t, err)
+						assert.NoError(t, err)
 						wg.Done()
 					}()
 
@@ -99,7 +100,7 @@ func TestLogBrokerLogs(t *testing.T) {
 						TaskID:    taskID,
 					}
 					for i := 0; i < nLogMessagesPerTask; i++ {
-						require.NoError(t, publisher.Send(&api.PublishLogsMessage{
+						assert.NoError(t, publisher.Send(&api.PublishLogsMessage{
 							SubscriptionID: sub.ID,
 							Messages:       []api.LogMessage{newLogMessage(msgctx, "log message number %d", i)},
 						}))
@@ -435,9 +436,9 @@ func TestLogBrokerNoFollow(t *testing.T) {
 
 	// Get the subscriptions from the agents.
 	subscription1 := ensureSubscription(t, agent1subscriptions)
-	require.Equal(t, subscription1.Selector.ServiceIDs[0], "service")
+	require.Equal(t, "service", subscription1.Selector.ServiceIDs[0])
 	subscription2 := ensureSubscription(t, agent2subscriptions)
-	require.Equal(t, subscription2.Selector.ServiceIDs[0], "service")
+	require.Equal(t, "service", subscription2.Selector.ServiceIDs[0])
 
 	require.Equal(t, subscription1.ID, subscription2.ID)
 
@@ -553,7 +554,7 @@ func TestLogBrokerNoFollowMissingNode(t *testing.T) {
 
 	// Grab the subscription and publish a log message from the connected agent.
 	sub := ensureSubscription(t, agentSubscriptions)
-	require.Equal(t, sub.Selector.ServiceIDs[0], "service")
+	require.Equal(t, "service", sub.Selector.ServiceIDs[0])
 	publisher, err := agent.PublishLogs(ctx)
 	require.NoError(t, err)
 	require.NoError(t,
@@ -578,8 +579,7 @@ func TestLogBrokerNoFollowMissingNode(t *testing.T) {
 
 	// Ensure the log stream ends with an error complaining about the missing node
 	_, err = logs.Recv()
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "node-2 is not available")
+	require.ErrorContains(t, err, "node-2 is not available")
 }
 
 func TestLogBrokerNoFollowNotYetRunningTask(t *testing.T) {
@@ -680,9 +680,9 @@ func TestLogBrokerNoFollowDisconnect(t *testing.T) {
 
 	// Get the subscriptions from the agents.
 	subscription1 := ensureSubscription(t, agent1subscriptions)
-	require.Equal(t, subscription1.Selector.ServiceIDs[0], "service")
+	require.Equal(t, "service", subscription1.Selector.ServiceIDs[0])
 	subscription2 := ensureSubscription(t, agent2subscriptions)
-	require.Equal(t, subscription2.Selector.ServiceIDs[0], "service")
+	require.Equal(t, "service", subscription2.Selector.ServiceIDs[0])
 
 	require.Equal(t, subscription1.ID, subscription2.ID)
 
@@ -714,8 +714,7 @@ func TestLogBrokerNoFollowDisconnect(t *testing.T) {
 
 	// ...and then an error
 	_, err = logs.Recv()
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "disconnected unexpectedly")
+	require.ErrorContains(t, err, "disconnected unexpectedly")
 }
 
 func testLogBrokerEnv(t *testing.T) (context.Context, *testutils.TestCA, *LogBroker, string, string, func()) {

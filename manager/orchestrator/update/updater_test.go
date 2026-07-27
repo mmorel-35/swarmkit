@@ -127,7 +127,7 @@ func TestUpdater(t *testing.T) {
 		}
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	originalTasks := getRunnableSlotSlice(t, s, service)
 	for _, slot := range originalTasks {
@@ -194,7 +194,7 @@ func TestUpdater(t *testing.T) {
 	updater = NewUpdater(s, restart.NewSupervisor(s), cluster, service)
 	updater.Run(ctx, getRunnableSlotSlice(t, s, service))
 	updatedTasks = getRunnableSlotSlice(t, s, service)
-	assert.Equal(t, instances, len(updatedTasks))
+	assert.Len(t, updatedTasks, instances)
 	for _, instance := range updatedTasks {
 		for _, task := range instance {
 			assert.Equal(t, "v:5", task.Spec.GetContainer().Image)
@@ -228,7 +228,7 @@ func TestUpdater(t *testing.T) {
 	// Update the desired state of the tasks to SHUTDOWN to simulate the
 	// case where images failed to pull due to bad registry auth.
 	taskSlots := make([]orchestrator.Slot, len(updatedTasks))
-	assert.NoError(t, s.Update(func(tx store.Tx) error {
+	require.NoError(t, s.Update(func(tx store.Tx) error {
 		for i, slot := range updatedTasks {
 			taskSlots[i] = make(orchestrator.Slot, len(slot))
 			for j, task := range slot {
@@ -324,7 +324,7 @@ func TestUpdaterPlacement(t *testing.T) {
 		}
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	originalTasks := getRunnableSlotSlice(t, s, service)
 	originalTasksMaps := make([]map[string]*api.Task, len(originalTasks))
@@ -438,7 +438,7 @@ func TestUpdaterFailureAction(t *testing.T) {
 		}
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	originalTasks := getRunnableSlotSlice(t, s, service)
 	for _, slot := range originalTasks {
@@ -496,7 +496,7 @@ func TestUpdaterFailureAction(t *testing.T) {
 		assert.NoError(t, store.UpdateService(tx, service))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	service.Spec.Task.GetContainer().Image = "v:3"
 	updater = NewUpdater(s, restart.NewSupervisor(s), cluster, service)
@@ -571,7 +571,7 @@ func TestUpdaterTaskTimeout(t *testing.T) {
 	}
 
 	err := s.Update(func(tx store.Tx) error {
-		assert.NoError(t, store.CreateService(tx, service))
+		require.NoError(t, store.CreateService(tx, service))
 		for i := uint64(0); i < instances; i++ {
 			task := orchestrator.NewTask(nil, service, uint64(i), "")
 			task.Status.State = api.TaskStateRunning
@@ -579,7 +579,7 @@ func TestUpdaterTaskTimeout(t *testing.T) {
 		}
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	originalTasks := getRunnableSlotSlice(t, s, service)
 	for _, slot := range originalTasks {
@@ -668,7 +668,7 @@ func TestUpdaterOrder(t *testing.T) {
 		}
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	originalTasks := getRunnableSlotSlice(t, s, service)
 	for _, instance := range originalTasks {
@@ -680,7 +680,7 @@ func TestUpdaterOrder(t *testing.T) {
 				task.Status.State = task.DesiredState
 				return store.UpdateTask(tx, task)
 			})
-			assert.NoError(t, err)
+			require.NoError(t, err)
 		}
 	}
 	service.Spec.Task.GetContainer().Image = "v:2"
@@ -693,12 +693,12 @@ func TestUpdaterOrder(t *testing.T) {
 	updater := NewUpdater(s, restart.NewSupervisor(s), nil, service)
 	updater.Run(ctx, getRunnableSlotSlice(t, s, service))
 	allTasks := getRunningServiceTasks(t, s, service)
-	assert.Equal(t, instances*2, len(allTasks))
+	assert.Len(t, allTasks, instances*2)
 	for _, task := range allTasks {
 		if task.Spec.GetContainer().Image == "v:1" {
-			assert.Equal(t, task.DesiredState, api.TaskStateShutdown)
+			assert.Equal(t, api.TaskStateShutdown, task.DesiredState)
 		} else if task.Spec.GetContainer().Image == "v:2" {
-			assert.Equal(t, task.DesiredState, api.TaskStateRunning)
+			assert.Equal(t, api.TaskStateRunning, task.DesiredState)
 		}
 	}
 }

@@ -10,6 +10,7 @@ import (
 
 	"github.com/moby/swarmkit/v2/api"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type uniqueStatus struct {
@@ -89,7 +90,7 @@ func TestReporter(t *testing.T) {
 	}
 
 	wg.Wait() // wait for the propagation
-	assert.NoError(t, reporter.Close())
+	require.NoError(t, reporter.Close())
 	mu.Lock()
 	defer mu.Unlock()
 

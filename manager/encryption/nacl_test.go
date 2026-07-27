@@ -54,8 +54,7 @@ func TestNACLSecretboxInvalidAlgorithm(t *testing.T) {
 	er.Algorithm = api.MaybeEncryptedRecord_NotEncrypted
 
 	_, err = crypter.Decrypt(*er)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "not a NACL secretbox")
+	require.ErrorContains(t, err, "not a NACL secretbox")
 }
 
 func TestNACLSecretboxCannotDecryptWithoutRightKey(t *testing.T) {
@@ -83,6 +82,5 @@ func TestNACLSecretboxInvalidNonce(t *testing.T) {
 	er.Nonce = er.Nonce[:20]
 
 	_, err = crypter.Decrypt(*er)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "invalid nonce size")
+	require.ErrorContains(t, err, "invalid nonce size")
 }
