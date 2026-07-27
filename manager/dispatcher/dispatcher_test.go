@@ -127,18 +127,18 @@ func startDispatcher(t *testing.T, c *Config) *grpcDispatcher {
 	t.Helper()
 
 	l, err := net.Listen("tcp", "127.0.0.1:0")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	tca := cautils.NewTestCA(t)
 	tca.CAServer.Stop() // there is no need for the CA server to be running
 	agentSecurityConfig1, err := tca.NewNodeConfig(ca.WorkerRole)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	agentSecurityConfig2, err := tca.NewNodeConfig(ca.WorkerRole)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	managerSecurityConfig, err := tca.NewNodeConfig(ca.ManagerRole)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	serverOpts := []grpc.ServerOption{grpc.Creds(managerSecurityConfig.ServerTLSCreds)}
 
@@ -168,7 +168,7 @@ func startDispatcher(t *testing.T, c *Config) *grpcDispatcher {
 		}
 		return nil
 	}, 5*time.Second)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	clientOpts := []grpc.DialOption{grpc.WithTimeout(10 * time.Second)}
 	clientOpts1 := append(clientOpts, grpc.WithTransportCredentials(agentSecurityConfig1.ClientTLSCreds))
@@ -176,13 +176,13 @@ func startDispatcher(t *testing.T, c *Config) *grpcDispatcher {
 	clientOpts3 := append(clientOpts, grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{InsecureSkipVerify: true})))
 
 	conn1, err := grpc.Dial(l.Addr().String(), clientOpts1...)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	conn2, err := grpc.Dial(l.Addr().String(), clientOpts2...)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	conn3, err := grpc.Dial(l.Addr().String(), clientOpts3...)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	clients := []api.DispatcherClient{api.NewDispatcherClient(conn1), api.NewDispatcherClient(conn2), api.NewDispatcherClient(conn3)}
 	securityConfigs := []*ca.SecurityConfig{agentSecurityConfig1, agentSecurityConfig2, managerSecurityConfig}
@@ -209,21 +209,21 @@ func TestRegisterTwice(t *testing.T) {
 	var expectedSessionID string
 	{
 		stream, err := gd.Clients[0].Session(context.Background(), &api.SessionRequest{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		msg, err := stream.Recv()
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotEmpty(t, msg.SessionID)
 		expectedSessionID = msg.SessionID
 		stream.CloseSend()
 	}
 	{
 		stream, err := gd.Clients[0].Session(context.Background(), &api.SessionRequest{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		msg, err := stream.Recv()
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		// session should be different!
-		assert.NotEqual(t, msg.SessionID, expectedSessionID)
+		assert.NotEqual(t, expectedSessionID, msg.SessionID)
 		stream.CloseSend()
 	}
 }
@@ -236,18 +236,18 @@ func TestRegisterExceedRateLimit(t *testing.T) {
 
 	for i := 0; i < 3; i++ {
 		stream, err := gd.Clients[0].Session(context.Background(), &api.SessionRequest{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		msg, err := stream.Recv()
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotEmpty(t, msg.SessionID)
 		stream.CloseSend()
 	}
 	{
 		stream, err := gd.Clients[0].Session(context.Background(), &api.SessionRequest{})
 		defer stream.CloseSend()
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		_, err = stream.Recv()
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Equal(t, codes.Unavailable, testutils.ErrorCode(err), err.Error())
 	}
 }
@@ -258,7 +258,7 @@ func TestRegisterNoCert(t *testing.T) {
 
 	// This client has no certificates, this should fail
 	stream, err := gd.Clients[2].Session(context.Background(), &api.SessionRequest{})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer stream.CloseSend()
 	resp, err := stream.Recv()
 	assert.Nil(t, resp)
@@ -275,11 +275,11 @@ func TestHeartbeat(t *testing.T) {
 	var expectedSessionID string
 	{
 		stream, err := gd.Clients[0].Session(context.Background(), &api.SessionRequest{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		defer stream.CloseSend()
 
 		resp, err := stream.Recv()
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotEmpty(t, resp.SessionID)
 		expectedSessionID = resp.SessionID
 	}
@@ -289,18 +289,18 @@ func TestHeartbeat(t *testing.T) {
 		// heartbeat without correct SessionID should fail
 		resp, err := gd.Clients[0].Heartbeat(context.Background(), &api.HeartbeatRequest{})
 		assert.Nil(t, resp)
-		assert.Error(t, err)
-		assert.Equal(t, testutils.ErrorCode(err), codes.InvalidArgument)
+		require.Error(t, err)
+		assert.Equal(t, codes.InvalidArgument, testutils.ErrorCode(err))
 	}
 
 	resp, err := gd.Clients[0].Heartbeat(context.Background(), &api.HeartbeatRequest{SessionID: expectedSessionID})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotZero(t, resp.Period)
 	time.Sleep(300 * time.Millisecond)
 
 	gd.Store.View(func(readTx store.ReadTx) {
 		storeNodes, err := store.FindNodes(readTx, store.All)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotEmpty(t, storeNodes)
 		found := false
 		for _, node := range storeNodes {
@@ -335,15 +335,15 @@ func TestHeartbeatTimeout(t *testing.T) {
 	var expectedSessionID string
 	{
 		stream, err := gd.Clients[0].Session(context.Background(), &api.SessionRequest{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		resp, err := stream.Recv()
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotEmpty(t, resp.SessionID)
 		expectedSessionID = resp.SessionID
 
 	}
 
-	assert.NoError(t, testutils.PollFunc(nil, func() error {
+	require.NoError(t, testutils.PollFunc(nil, func() error {
 		var storeNode *api.Node
 		gd.Store.View(func(readTx store.ReadTx) {
 			storeNode = store.GetNode(readTx, gd.SecurityConfigs[0].ClientTLSCreds.NodeID())
@@ -360,8 +360,7 @@ func TestHeartbeatTimeout(t *testing.T) {
 	// check that node is deregistered
 	resp, err := gd.Clients[0].Heartbeat(context.Background(), &api.HeartbeatRequest{SessionID: expectedSessionID})
 	assert.Nil(t, resp)
-	assert.Error(t, err)
-	assert.Equal(t, testutils.ErrorDesc(err), ErrNodeNotRegistered.Error())
+	assert.EqualError(t, ErrNodeNotRegistered, testutils.ErrorDesc(err))
 }
 
 func TestHeartbeatUnregistered(t *testing.T) {
@@ -369,8 +368,7 @@ func TestHeartbeatUnregistered(t *testing.T) {
 	defer gd.Close()
 	resp, err := gd.Clients[0].Heartbeat(context.Background(), &api.HeartbeatRequest{})
 	assert.Nil(t, resp)
-	assert.Error(t, err)
-	assert.Equal(t, ErrSessionInvalid.Error(), testutils.ErrorDesc(err))
+	assert.EqualError(t, ErrSessionInvalid, testutils.ErrorDesc(err))
 }
 
 // If the session ID is not sent as part of the Assignments request, an error is returned to the stream
@@ -382,14 +380,14 @@ func TestAssignmentsErrorsIfNoSessionID(t *testing.T) {
 
 	// without correct SessionID should fail
 	stream, err := gd.Clients[0].Assignments(context.Background(), &api.AssignmentsRequest{})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, stream)
 	defer stream.CloseSend()
 
 	resp, err := stream.Recv()
 	assert.Nil(t, resp)
-	assert.Error(t, err)
-	assert.Equal(t, testutils.ErrorCode(err), codes.InvalidArgument)
+	require.Error(t, err)
+	assert.Equal(t, codes.InvalidArgument, testutils.ErrorCode(err))
 }
 
 func TestAssignmentsSecretDriver(t *testing.T) {
@@ -421,21 +419,21 @@ func TestAssignmentsSecretDriver(t *testing.T) {
 	var mux MockPluginClient
 	mux.HandleFunc(drivers.SecretsProviderAPI, func(body []byte) (interface{}, error) {
 		var request drivers.SecretsProviderRequest
-		assert.NoError(t, json.Unmarshal(body, &request))
+		require.NoError(t, json.Unmarshal(body, &request))
 		response := responses[request.SecretName]
 		assert.Equal(t, serviceName, request.ServiceName)
 		assert.Equal(t, serviceHostname, request.ServiceHostname)
 		assert.Equal(t, int32(serviceEndpointMode), request.ServiceEndpointSpec.Mode)
 		assert.Len(t, request.ServiceEndpointSpec.Ports, 1)
-		assert.EqualValues(t, portConfig, request.ServiceEndpointSpec.Ports[0])
-		assert.EqualValues(t, serviceLabels, request.ServiceLabels)
+		assert.Equal(t, portConfig, request.ServiceEndpointSpec.Ports[0])
+		assert.Equal(t, serviceLabels, request.ServiceLabels)
 		assert.NotNil(t, response)
 		return response, nil
 	})
 
 	gd := startDispatcher(t, DefaultConfig())
 	defer gd.Close()
-	assert.NoError(t, gd.PluginGetter.SetupPlugin(secretDriver, &mux))
+	require.NoError(t, gd.PluginGetter.SetupPlugin(secretDriver, &mux))
 
 	expectedSessionID, nodeID := getSessionAndNodeID(t, gd.Clients[0])
 
@@ -502,14 +500,14 @@ func TestAssignmentsSecretDriver(t *testing.T) {
 		assert.NoError(t, store.CreateTask(tx, task))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	stream, err := gd.Clients[0].Assignments(context.Background(), &api.AssignmentsRequest{SessionID: expectedSessionID})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer stream.CloseSend()
 
 	resp, err := stream.Recv()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	_, _, secretChanges, _ := splitChanges(resp.Changes)
 	assert.Len(t, secretChanges, 2)
@@ -702,19 +700,19 @@ func TestAssignmentsWithVolume(t *testing.T) {
 
 		return store.CreateTask(tx, task)
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	stream, err := gd.Clients[0].Assignments(
 		context.Background(),
 		&api.AssignmentsRequest{SessionID: expectedSessionID},
 	)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer stream.CloseSend()
 
 	time.Sleep(100 * time.Millisecond)
 
 	resp, err := stream.Recv()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	verifyChanges(t, resp.Changes, []changeExpectations{
 		{
@@ -750,7 +748,7 @@ func TestAssignmentsWithVolume(t *testing.T) {
 	})
 
 	// now update the volume to be published
-	assert.NoError(t, gd.Store.Update(func(tx store.Tx) error {
+	require.NoError(t, gd.Store.Update(func(tx store.Tx) error {
 		v := store.GetVolume(tx, "volumeID0")
 		v.PublishStatus[0].State = api.VolumePublishStatus_PUBLISHED
 		v.PublishStatus[0].PublishContext = map[string]string{
@@ -762,15 +760,11 @@ func TestAssignmentsWithVolume(t *testing.T) {
 
 	// now see if we get a volume assignment
 	resp, err = stream.Recv()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	_, _, _, volumeChanges := splitChanges(resp.Changes)
 	assert.Len(t, volumeChanges, 1)
 	assert.Equal(t,
-		volumeChanges[idAndAction{
-			id:     "volumeID0",
-			action: api.AssignmentChange_AssignmentActionUpdate,
-		}],
 		&api.VolumeAssignment{
 			ID:       "volumeID0",
 			VolumeID: "csiID0",
@@ -793,7 +787,10 @@ func TestAssignmentsWithVolume(t *testing.T) {
 					Secret: "secret1",
 				},
 			},
-		},
+		}, volumeChanges[idAndAction{
+			id:     "volumeID0",
+			action: api.AssignmentChange_AssignmentActionUpdate,
+		}],
 	)
 }
 
@@ -823,14 +820,14 @@ func testAssignmentsInitialNodeTasksWithGivenTasks(t *testing.T, genTasks taskGe
 	secrets, configs, resourceRefs, tasks := genTasks(t, nodeID)
 	err := gd.Store.Update(func(tx store.Tx) error {
 		for _, secret := range secrets {
-			assert.NoError(t, store.CreateSecret(tx, secret))
+			require.NoError(t, store.CreateSecret(tx, secret))
 		}
 		for _, config := range configs {
-			assert.NoError(t, store.CreateConfig(tx, config))
+			require.NoError(t, store.CreateConfig(tx, config))
 		}
 		// make dummy secrets and configs for resourceRefs
 		for _, resourceRef := range resourceRefs {
-			assert.NoError(t, makeMockResource(tx, resourceRef))
+			require.NoError(t, makeMockResource(tx, resourceRef))
 		}
 
 		for _, task := range tasks {
@@ -838,17 +835,17 @@ func testAssignmentsInitialNodeTasksWithGivenTasks(t *testing.T, genTasks taskGe
 		}
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	stream, err := gd.Clients[0].Assignments(context.Background(), &api.AssignmentsRequest{SessionID: expectedSessionID})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer stream.CloseSend()
 
 	time.Sleep(100 * time.Millisecond)
 
 	// check the initial task and secret stream
 	resp, err := stream.Recv()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	assignedToRunningTasks := filterTasks(tasks, func(s api.TaskState) bool {
 		return s >= api.TaskStateAssigned && s <= api.TaskStateRunning
@@ -882,10 +879,10 @@ func testAssignmentsInitialNodeTasksWithGivenTasks(t *testing.T, genTasks taskGe
 		return nil
 
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	resp, err = stream.Recv()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// dependencies for tasks > RUNNING are removed, but only if they are not currently being used
 	// by a task >= ASSIGNED and <= RUNNING
@@ -911,10 +908,10 @@ func testAssignmentsInitialNodeTasksWithGivenTasks(t *testing.T, genTasks taskGe
 		}
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	resp, err = stream.Recv()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// tasks >= ASSIGNED and their dependencies have all been removed;
 	// task < ASSIGNED and their dependencies were never sent in the first place, so don't need to be removed
@@ -1023,14 +1020,14 @@ func testAssignmentsAddingTasksWithGivenTasks(t *testing.T, genTasks taskGenerat
 	expectedSessionID, nodeID := getSessionAndNodeID(t, gd.Clients[0])
 
 	stream, err := gd.Clients[0].Assignments(context.Background(), &api.AssignmentsRequest{SessionID: expectedSessionID})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer stream.CloseSend()
 
 	time.Sleep(100 * time.Millisecond)
 
 	// There are no initial tasks or secrets
 	resp, err := stream.Recv()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Empty(t, resp.Changes)
 
 	// create the relevant secrets, configs, and tasks and update the tasks
@@ -1046,17 +1043,17 @@ func testAssignmentsAddingTasksWithGivenTasks(t *testing.T, genTasks taskGenerat
 	err = gd.Store.Update(func(tx store.Tx) error {
 		for _, secret := range createdSecrets {
 			if store.GetSecret(tx, secret.ID) == nil {
-				assert.NoError(t, store.CreateSecret(tx, secret))
+				require.NoError(t, store.CreateSecret(tx, secret))
 			}
 		}
 		for _, config := range createdConfigs {
 			if store.GetConfig(tx, config.ID) == nil {
-				assert.NoError(t, store.CreateConfig(tx, config))
+				require.NoError(t, store.CreateConfig(tx, config))
 			}
 		}
 		// make dummy secrets and configs for resourceRefs
 		for _, resourceRef := range resourceRefs {
-			assert.NoError(t, makeMockResource(tx, resourceRef))
+			require.NoError(t, makeMockResource(tx, resourceRef))
 		}
 
 		for _, task := range tasks {
@@ -1064,7 +1061,7 @@ func testAssignmentsAddingTasksWithGivenTasks(t *testing.T, genTasks taskGenerat
 		}
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Nothing happens until we update.  Updating all the tasks will send updates for all the tasks >= ASSIGNED,
 	// and secrets for all the tasks >= ASSIGNED and <= RUNNING.
@@ -1075,10 +1072,10 @@ func testAssignmentsAddingTasksWithGivenTasks(t *testing.T, genTasks taskGenerat
 		return nil
 
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	resp, err = stream.Recv()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	assignedToRunningTasks := filterTasks(tasks, func(s api.TaskState) bool {
 		return s >= api.TaskStateAssigned && s <= api.TaskStateRunning
@@ -1112,10 +1109,10 @@ func testAssignmentsAddingTasksWithGivenTasks(t *testing.T, genTasks taskGenerat
 		return nil
 
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	resp, err = stream.Recv()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// tasks >= ASSIGNED and their dependencies have all been removed, even if they don't exist in the store;
 	// task < ASSIGNED and their dependencies were never sent in the first place, so don't need to be removed
@@ -1157,17 +1154,17 @@ func testAssignmentsDependencyUpdateAndDeletionWithGivenTasks(t *testing.T, genT
 	err := gd.Store.Update(func(tx store.Tx) error {
 		for _, secret := range secrets {
 			if store.GetSecret(tx, secret.ID) == nil {
-				assert.NoError(t, store.CreateSecret(tx, secret))
+				require.NoError(t, store.CreateSecret(tx, secret))
 			}
 		}
 		for _, config := range configs {
 			if store.GetConfig(tx, config.ID) == nil {
-				assert.NoError(t, store.CreateConfig(tx, config))
+				require.NoError(t, store.CreateConfig(tx, config))
 			}
 		}
 		// make dummy secrets and configs for resourceRefs
 		for _, resourceRef := range resourceRefs {
-			assert.NoError(t, makeMockResource(tx, resourceRef))
+			require.NoError(t, makeMockResource(tx, resourceRef))
 		}
 
 		for _, task := range tasks {
@@ -1175,17 +1172,17 @@ func testAssignmentsDependencyUpdateAndDeletionWithGivenTasks(t *testing.T, genT
 		}
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	stream, err := gd.Clients[0].Assignments(context.Background(), &api.AssignmentsRequest{SessionID: expectedSessionID})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer stream.CloseSend()
 
 	time.Sleep(100 * time.Millisecond)
 
 	// check the initial task and secret stream
 	resp, err := stream.Recv()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	assignedToRunningTasks := filterTasks(tasks, func(s api.TaskState) bool {
 		return s >= api.TaskStateAssigned && s <= api.TaskStateRunning
@@ -1211,7 +1208,7 @@ func testAssignmentsDependencyUpdateAndDeletionWithGivenTasks(t *testing.T, genT
 	// updating secrets and configs, used by tasks or not, do not cause any changes
 	uniqueSecrets := uniquifySecrets(secrets)
 	uniqueConfigs := uniquifyConfigs(configs)
-	assert.NoError(t, gd.Store.Update(func(tx store.Tx) error {
+	require.NoError(t, gd.Store.Update(func(tx store.Tx) error {
 		for _, s := range uniqueSecrets {
 			s.Spec.Data = []byte("new secret data")
 			if err := store.UpdateSecret(tx, s); err != nil {
@@ -1242,14 +1239,14 @@ func testAssignmentsDependencyUpdateAndDeletionWithGivenTasks(t *testing.T, genT
 	// deleting secrets and configs, used by tasks or not, do not cause any changes
 	err = gd.Store.Update(func(tx store.Tx) error {
 		for _, secret := range uniqueSecrets {
-			assert.NoError(t, store.DeleteSecret(tx, secret.ID))
+			require.NoError(t, store.DeleteSecret(tx, secret.ID))
 		}
 		for _, config := range uniqueConfigs {
 			assert.NoError(t, store.DeleteConfig(tx, config.ID))
 		}
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	select {
 	case <-recvChan:
@@ -1268,10 +1265,10 @@ func TestTasksStatusChange(t *testing.T) {
 	var nodeID string
 	{
 		stream, err := gd.Clients[0].Session(context.Background(), &api.SessionRequest{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		defer stream.CloseSend()
 		resp, err := stream.Recv()
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotEmpty(t, resp.SessionID)
 		expectedSessionID = resp.SessionID
 		nodeID = resp.Node.ID
@@ -1291,14 +1288,14 @@ func TestTasksStatusChange(t *testing.T) {
 	}
 
 	stream, err := gd.Clients[0].Assignments(context.Background(), &api.AssignmentsRequest{SessionID: expectedSessionID})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	time.Sleep(100 * time.Millisecond)
 
 	resp, err := stream.Recv()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	// initially no tasks
-	assert.Equal(t, 0, len(resp.Changes))
+	assert.Empty(t, resp.Changes)
 
 	// Creating the tasks will not create an event for assignments
 	err = gd.Store.Update(func(tx store.Tx) error {
@@ -1306,16 +1303,16 @@ func TestTasksStatusChange(t *testing.T) {
 		assert.NoError(t, store.CreateTask(tx, testTask2))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	err = gd.Store.Update(func(tx store.Tx) error {
 		assert.NoError(t, store.UpdateTask(tx, testTask1))
 		assert.NoError(t, store.UpdateTask(tx, testTask2))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	resp, err = stream.Recv()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	verifyChanges(t, resp.Changes, []changeExpectations{
 		{
@@ -1324,7 +1321,7 @@ func TestTasksStatusChange(t *testing.T) {
 		},
 	})
 
-	assert.NoError(t, gd.Store.Update(func(tx store.Tx) error {
+	require.NoError(t, gd.Store.Update(func(tx store.Tx) error {
 		task := store.GetTask(tx, testTask1.ID)
 		if task == nil {
 			return errors.New("no task")
@@ -1358,10 +1355,10 @@ func TestTasksBatch(t *testing.T) {
 	var nodeID string
 	{
 		stream, err := gd.Clients[0].Session(context.Background(), &api.SessionRequest{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		defer stream.CloseSend()
 		resp, err := stream.Recv()
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotEmpty(t, resp.SessionID)
 		expectedSessionID = resp.SessionID
 		nodeID = resp.Node.ID
@@ -1379,12 +1376,12 @@ func TestTasksBatch(t *testing.T) {
 	}
 
 	stream, err := gd.Clients[0].Assignments(context.Background(), &api.AssignmentsRequest{SessionID: expectedSessionID})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	resp, err := stream.Recv()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	// initially no tasks
-	assert.Equal(t, 0, len(resp.Changes))
+	assert.Empty(t, resp.Changes)
 
 	// Create, Update and Delete tasks.
 	err = gd.Store.Update(func(tx store.Tx) error {
@@ -1392,23 +1389,23 @@ func TestTasksBatch(t *testing.T) {
 		assert.NoError(t, store.CreateTask(tx, testTask2))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	err = gd.Store.Update(func(tx store.Tx) error {
 		assert.NoError(t, store.UpdateTask(tx, testTask1))
 		assert.NoError(t, store.UpdateTask(tx, testTask2))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	err = gd.Store.Update(func(tx store.Tx) error {
 		assert.NoError(t, store.DeleteTask(tx, testTask1.ID))
 		assert.NoError(t, store.DeleteTask(tx, testTask2.ID))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	resp, err = stream.Recv()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// all tasks have been deleted
 	verifyChanges(t, resp.Changes, []changeExpectations{
@@ -1424,7 +1421,7 @@ func TestTasksNoCert(t *testing.T) {
 	defer gd.Close()
 
 	stream, err := gd.Clients[2].Assignments(context.Background(), &api.AssignmentsRequest{})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, stream)
 	resp, err := stream.Recv()
 	assert.Nil(t, resp)
@@ -1441,10 +1438,10 @@ func TestTaskUpdate(t *testing.T) {
 	)
 	{
 		stream, err := gd.Clients[0].Session(context.Background(), &api.SessionRequest{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		defer stream.CloseSend()
 		resp, err := stream.Recv()
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotEmpty(t, resp.SessionID)
 		expectedSessionID = resp.SessionID
 		nodeID = resp.Node.ID
@@ -1481,7 +1478,7 @@ func TestTaskUpdate(t *testing.T) {
 		assert.NoError(t, store.CreateTask(tx, testTask4))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	testTask1.Status = api.TaskStatus{State: api.TaskStateAssigned}
 	testTask2.Status = api.TaskStatus{State: api.TaskStateAssigned}
@@ -1508,13 +1505,13 @@ func TestTaskUpdate(t *testing.T) {
 		// without correct SessionID should fail
 		resp, err := gd.Clients[0].UpdateTaskStatus(context.Background(), updReq)
 		assert.Nil(t, resp)
-		assert.Error(t, err)
-		assert.Equal(t, testutils.ErrorCode(err), codes.InvalidArgument)
+		require.Error(t, err)
+		assert.Equal(t, codes.InvalidArgument, testutils.ErrorCode(err))
 	}
 
 	updReq.SessionID = expectedSessionID
 	_, err = gd.Clients[0].UpdateTaskStatus(context.Background(), updReq)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	{
 		// updating a task not assigned to us should fail
@@ -1527,8 +1524,8 @@ func TestTaskUpdate(t *testing.T) {
 
 		resp, err := gd.Clients[0].UpdateTaskStatus(context.Background(), updReq)
 		assert.Nil(t, resp)
-		assert.Error(t, err)
-		assert.Equal(t, testutils.ErrorCode(err), codes.PermissionDenied)
+		require.Error(t, err)
+		assert.Equal(t, codes.PermissionDenied, testutils.ErrorCode(err))
 	}
 
 	gd.dispatcherServer.processUpdates(context.Background())
@@ -1538,18 +1535,18 @@ func TestTaskUpdate(t *testing.T) {
 		assert.NotNil(t, storeTask1)
 		storeTask2 := store.GetTask(readTx, testTask2.ID)
 		assert.NotNil(t, storeTask2)
-		assert.Equal(t, storeTask1.Status.State, api.TaskStateAssigned)
-		assert.Equal(t, storeTask2.Status.State, api.TaskStateAssigned)
+		assert.Equal(t, api.TaskStateAssigned, storeTask1.Status.State)
+		assert.Equal(t, api.TaskStateAssigned, storeTask2.Status.State)
 
 		storeTask3 := store.GetTask(readTx, testTask3.ID)
 		assert.NotNil(t, storeTask3)
-		assert.Equal(t, storeTask3.Status.State, api.TaskStateNew)
+		assert.Equal(t, api.TaskStateNew, storeTask3.Status.State)
 
 		// The update to task4's state should be ignored because it
 		// would have moved backwards.
 		storeTask4 := store.GetTask(readTx, testTask4.ID)
 		assert.NotNil(t, storeTask4)
-		assert.Equal(t, storeTask4.Status.State, api.TaskStateShutdown)
+		assert.Equal(t, api.TaskStateShutdown, storeTask4.Status.State)
 	})
 
 }
@@ -1565,7 +1562,7 @@ func TestTaskUpdateNoCert(t *testing.T) {
 		assert.NoError(t, store.CreateTask(tx, testTask1))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	testTask1.Status = api.TaskStatus{State: api.TaskStateAssigned}
 	updReq := &api.UpdateTaskStatusRequest{
@@ -1579,7 +1576,6 @@ func TestTaskUpdateNoCert(t *testing.T) {
 	// without correct SessionID should fail
 	resp, err := gd.Clients[2].UpdateTaskStatus(context.Background(), updReq)
 	assert.Nil(t, resp)
-	assert.Error(t, err)
 	assert.EqualError(t, err, "rpc error: code = PermissionDenied desc = Permission denied: unauthorized peer role: rpc error: code = PermissionDenied desc = no client certificates in request")
 }
 
@@ -1598,12 +1594,12 @@ func TestSession(t *testing.T) {
 	require.NoError(t, err)
 
 	stream, err := gd.Clients[0].Session(context.Background(), &api.SessionRequest{})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	stream.CloseSend()
 	resp, err := stream.Recv()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, resp.SessionID)
-	assert.Equal(t, 1, len(resp.Managers))
+	assert.Len(t, resp.Managers, 1)
 }
 
 func TestSessionNoCert(t *testing.T) {
@@ -1611,7 +1607,7 @@ func TestSessionNoCert(t *testing.T) {
 	defer gd.Close()
 
 	stream, err := gd.Clients[2].Session(context.Background(), &api.SessionRequest{})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	msg, err := stream.Recv()
 	assert.Nil(t, msg)
 	assert.EqualError(t, err, "rpc error: code = PermissionDenied desc = Permission denied: unauthorized peer role: rpc error: code = PermissionDenied desc = no client certificates in request")
@@ -1619,10 +1615,10 @@ func TestSessionNoCert(t *testing.T) {
 
 func getSessionAndNodeID(t *testing.T, c api.DispatcherClient) (string, string) {
 	stream, err := c.Session(context.Background(), &api.SessionRequest{})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer stream.CloseSend()
 	resp, err := stream.Recv()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, resp.SessionID)
 	return resp.SessionID, resp.Node.ID
 }
@@ -2002,10 +1998,10 @@ func TestOldTasks(t *testing.T) {
 	var nodeID string
 	{
 		stream, err := gd.Clients[0].Session(context.Background(), &api.SessionRequest{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		defer stream.CloseSend()
 		resp, err := stream.Recv()
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotEmpty(t, resp.SessionID)
 		expectedSessionID = resp.SessionID
 		nodeID = resp.Node.ID
@@ -2027,37 +2023,37 @@ func TestOldTasks(t *testing.T) {
 	{
 		// without correct SessionID should fail
 		stream, err := gd.Clients[0].Tasks(context.Background(), &api.TasksRequest{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, stream)
 		resp, err := stream.Recv()
 		assert.Nil(t, resp)
-		assert.Error(t, err)
-		assert.Equal(t, testutils.ErrorCode(err), codes.InvalidArgument)
+		require.Error(t, err)
+		assert.Equal(t, codes.InvalidArgument, testutils.ErrorCode(err))
 	}
 
 	stream, err := gd.Clients[0].Tasks(context.Background(), &api.TasksRequest{SessionID: expectedSessionID})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	time.Sleep(100 * time.Millisecond)
 
 	resp, err := stream.Recv()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	// initially no tasks
-	assert.Equal(t, 0, len(resp.Tasks))
+	assert.Empty(t, resp.Tasks)
 
 	err = gd.Store.Update(func(tx store.Tx) error {
 		assert.NoError(t, store.CreateTask(tx, testTask1))
 		assert.NoError(t, store.CreateTask(tx, testTask2))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	resp, err = stream.Recv()
-	assert.NoError(t, err)
-	assert.Equal(t, len(resp.Tasks), 2)
+	require.NoError(t, err)
+	assert.Len(t, resp.Tasks, 2)
 	assert.True(t, resp.Tasks[0].ID == "testTask1" && resp.Tasks[1].ID == "testTask2" || resp.Tasks[0].ID == "testTask2" && resp.Tasks[1].ID == "testTask1")
 
-	assert.NoError(t, gd.Store.Update(func(tx store.Tx) error {
+	require.NoError(t, gd.Store.Update(func(tx store.Tx) error {
 		task := store.GetTask(tx, testTask1.ID)
 		if task == nil {
 			return errors.New("no task")
@@ -2069,11 +2065,11 @@ func TestOldTasks(t *testing.T) {
 	}))
 
 	resp, err = stream.Recv()
-	assert.NoError(t, err)
-	assert.Equal(t, len(resp.Tasks), 2)
+	require.NoError(t, err)
+	assert.Len(t, resp.Tasks, 2)
 	for _, task := range resp.Tasks {
 		if task.ID == "testTask1" {
-			assert.Equal(t, task.DesiredState, api.TaskStateRunning)
+			assert.Equal(t, api.TaskStateRunning, task.DesiredState)
 		}
 	}
 
@@ -2082,11 +2078,11 @@ func TestOldTasks(t *testing.T) {
 		assert.NoError(t, store.DeleteTask(tx, testTask2.ID))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	resp, err = stream.Recv()
-	assert.NoError(t, err)
-	assert.Equal(t, len(resp.Tasks), 0)
+	require.NoError(t, err)
+	assert.Empty(t, resp.Tasks)
 }
 
 func TestOldTasksStatusChange(t *testing.T) {
@@ -2099,10 +2095,10 @@ func TestOldTasksStatusChange(t *testing.T) {
 	var nodeID string
 	{
 		stream, err := gd.Clients[0].Session(context.Background(), &api.SessionRequest{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		defer stream.CloseSend()
 		resp, err := stream.Recv()
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotEmpty(t, resp.SessionID)
 		expectedSessionID = resp.SessionID
 		nodeID = resp.Node.ID
@@ -2124,37 +2120,37 @@ func TestOldTasksStatusChange(t *testing.T) {
 	{
 		// without correct SessionID should fail
 		stream, err := gd.Clients[0].Tasks(context.Background(), &api.TasksRequest{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, stream)
 		resp, err := stream.Recv()
 		assert.Nil(t, resp)
-		assert.Error(t, err)
-		assert.Equal(t, testutils.ErrorCode(err), codes.InvalidArgument)
+		require.Error(t, err)
+		assert.Equal(t, codes.InvalidArgument, testutils.ErrorCode(err))
 	}
 
 	stream, err := gd.Clients[0].Tasks(context.Background(), &api.TasksRequest{SessionID: expectedSessionID})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	time.Sleep(100 * time.Millisecond)
 
 	resp, err := stream.Recv()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	// initially no tasks
-	assert.Equal(t, 0, len(resp.Tasks))
+	assert.Empty(t, resp.Tasks)
 
 	err = gd.Store.Update(func(tx store.Tx) error {
 		assert.NoError(t, store.CreateTask(tx, testTask1))
 		assert.NoError(t, store.CreateTask(tx, testTask2))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	resp, err = stream.Recv()
-	assert.NoError(t, err)
-	assert.Equal(t, len(resp.Tasks), 2)
+	require.NoError(t, err)
+	assert.Len(t, resp.Tasks, 2)
 	assert.True(t, resp.Tasks[0].ID == "testTask1" && resp.Tasks[1].ID == "testTask2" || resp.Tasks[0].ID == "testTask2" && resp.Tasks[1].ID == "testTask1")
 
-	assert.NoError(t, gd.Store.Update(func(tx store.Tx) error {
+	require.NoError(t, gd.Store.Update(func(tx store.Tx) error {
 		task := store.GetTask(tx, testTask1.ID)
 		if task == nil {
 			return errors.New("no task")
@@ -2188,10 +2184,10 @@ func TestOldTasksBatch(t *testing.T) {
 	var nodeID string
 	{
 		stream, err := gd.Clients[0].Session(context.Background(), &api.SessionRequest{})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		defer stream.CloseSend()
 		resp, err := stream.Recv()
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotEmpty(t, resp.SessionID)
 		expectedSessionID = resp.SessionID
 		nodeID = resp.Node.ID
@@ -2209,31 +2205,31 @@ func TestOldTasksBatch(t *testing.T) {
 	}
 
 	stream, err := gd.Clients[0].Tasks(context.Background(), &api.TasksRequest{SessionID: expectedSessionID})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	resp, err := stream.Recv()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	// initially no tasks
-	assert.Equal(t, 0, len(resp.Tasks))
+	assert.Empty(t, resp.Tasks)
 
 	err = gd.Store.Update(func(tx store.Tx) error {
 		assert.NoError(t, store.CreateTask(tx, testTask1))
 		assert.NoError(t, store.CreateTask(tx, testTask2))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	err = gd.Store.Update(func(tx store.Tx) error {
 		assert.NoError(t, store.DeleteTask(tx, testTask1.ID))
 		assert.NoError(t, store.DeleteTask(tx, testTask2.ID))
 		return nil
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	resp, err = stream.Recv()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	// all tasks have been deleted
-	assert.Equal(t, len(resp.Tasks), 0)
+	assert.Empty(t, resp.Tasks)
 }
 
 func TestOldTasksNoCert(t *testing.T) {
@@ -2241,7 +2237,7 @@ func TestOldTasksNoCert(t *testing.T) {
 	defer gd.Close()
 
 	stream, err := gd.Clients[2].Tasks(context.Background(), &api.TasksRequest{})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, stream)
 	resp, err := stream.Recv()
 	assert.Nil(t, resp)
